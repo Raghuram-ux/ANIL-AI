@@ -1,12 +1,13 @@
 # Dependencies
 node_modules/
-backend/venv/
-backend/__pycache__/
+**/venv/
+**/__pycache__/
+*.pyc
 frontend/.next/
 
 # Environment
 .env
-backend/.env
+**/ .env
 frontend/.env.local
 
 # Build artifacts
