@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pgvector
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib
+bcrypt<4.0.0
+pymupdf
+langchain
+langchain-text-splitters
+langchain-openai
+openai
+python-multipart
