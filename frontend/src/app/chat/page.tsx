@@ -1,13 +1,16 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import api from '@/lib/api';
-import { Send, BookOpen, User, Trash2, Sparkles } from 'lucide-react';
+import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 
 export default function Chat() {
   const [messages, setMessages] = useState<{role: string, content: string, sources?: string[]}[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   const clearChat = () => {
     setMessages([]);
@@ -37,6 +40,82 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle Speech Synthesis (TTS)
+  const speak = (text: string) => {
+    if (!voiceEnabled || typeof window === 'undefined') return;
+    window.speechSynthesis.cancel(); 
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Detect if content is likely Tamil (checking for Tamil script range)
+    const hasTamilScript = /[\u0B80-\u0BFF]/.test(text);
+    
+    // Attempt to find a suitable voice
+    const voices = window.speechSynthesis.getVoices();
+    let selectedVoice = null;
+
+    if (hasTamilScript) {
+      utterance.lang = 'ta-IN';
+      selectedVoice = voices.find(v => v.lang.startsWith('ta')) || null;
+    } else {
+      // For Tanglish/English, en-IN often sounds more natural for this use case
+      utterance.lang = 'en-IN';
+      selectedVoice = voices.find(v => v.lang === 'en-IN') || voices.find(v => v.lang.startsWith('en')) || null;
+    }
+
+    if (selectedVoice) utterance.voice = selectedVoice;
+    
+    utterance.rate = 1.0; 
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Initialize Speech Recognition (STT)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-IN'; // Better support for Indian English/Tanglish accent
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(transcript);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      if (!recognitionRef.current) {
+        alert("Speech recognition is not supported in this browser.");
+        return;
+      }
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error("Failed to start listening:", e);
+      }
+    }
+  };
+
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
@@ -53,6 +132,8 @@ export default function Chat() {
         content: res.data.answer,
         sources: res.data.sources
       }]);
+      // Speak the response if voice is enabled
+      speak(res.data.answer);
     } catch (err) {
       console.error(err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error communicating with the university servers.' }]);
@@ -66,30 +147,39 @@ export default function Chat() {
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[var(--background)] transition-all">
         <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-[var(--primary)] rounded-lg shadow-lg shadow-[#1a3622]/20">
+            <div className="p-2 bg-[var(--primary)] rounded-lg shadow-lg shadow-[#1e62ff]/20">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-lg font-bold text-[var(--foreground)] tracking-tight">Campus Support Chat</h1>
           </div>
-          {messages.length > 0 && (
-            <button 
-              onClick={clearChat}
-              className="group flex items-center text-xs font-bold text-red-500 hover:text-red-700 transition-all uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              className={`p-2 rounded-lg transition-all ${voiceEnabled ? 'bg-amber-500/10 text-amber-500' : 'text-[var(--foreground)] opacity-30 hover:opacity-100'}`}
+              title={voiceEnabled ? "Turn off voice" : "Turn on voice"}
             >
-              <Trash2 className="w-3.5 h-3.5 mr-2 group-hover:rotate-12 transition-transform" />
-              Reset Conversation
+              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
-          )}
+            {messages.length > 0 && (
+              <button 
+                onClick={clearChat}
+                className="group flex items-center text-xs font-bold text-red-500 hover:text-red-700 transition-all uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-2 group-hover:rotate-12 transition-transform" />
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-6">
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-12 space-y-6">
             <div className="relative">
               <div className="absolute inset-0 bg-[var(--primary)] blur-3xl opacity-10 rounded-full animate-pulse"></div>
               <BookOpen className="w-20 h-20 text-[var(--primary)] opacity-20 relative z-10" />
             </div>
-            <p className="text-center max-w-sm text-sm leading-relaxed">
-              Hello! I'm **ANIL**, your AI campus concierge. Ask me about **attendance policies, semester syllabus, or library hours**.
+            <p className="text-center max-w-sm text-sm leading-relaxed italic">
+              "Hey there. I'm **ANIL**, a senior here. Take it easy and don't stress—I'm here to help you find whatever you need. Ask me about **attendance, syllabus, or campus life**."
             </p>
           </div>
         )}
@@ -151,6 +241,18 @@ export default function Chat() {
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
           />
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isLoading}
+            className={`w-14 h-14 flex items-center justify-center rounded-full transition-all shrink-0 shadow-md ${
+              isListening 
+                ? 'bg-red-500 text-white animate-pulse shadow-red-500/50' 
+                : 'bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)]'
+            }`}
+          >
+            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          </button>
           <button 
             type="submit" 
             disabled={!input.trim() || isLoading}
