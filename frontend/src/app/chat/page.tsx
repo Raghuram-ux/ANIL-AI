@@ -178,8 +178,8 @@ export default function Chat() {
               <div className="absolute inset-0 bg-[var(--primary)] blur-3xl opacity-10 rounded-full animate-pulse"></div>
               <BookOpen className="w-20 h-20 text-[var(--primary)] opacity-20 relative z-10" />
             </div>
-            <p className="text-center max-w-sm text-sm leading-relaxed italic">
-              "Hey there. I'm **ANIL**, a senior here. Take it easy and don't stress—I'm here to help you find whatever you need. Ask me about **attendance, syllabus, or campus life**."
+            <p className="text-center max-w-sm text-sm leading-relaxed font-bold tracking-tight opacity-70">
+              [SYSTEM INTERFACE ONLINE] Automated Institutional Knowledge Access. Enter query to retrieve data regarding: **attendance**, **syllabus**, or **university policies**.
             </p>
           </div>
         )}
