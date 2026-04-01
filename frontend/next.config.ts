@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/chat",
+        source: "/chat/:path*",
         headers: [
           {
             key: "X-Frame-Options",
