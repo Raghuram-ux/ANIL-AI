@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import database
 import models
-from routers import auth, documents, chat
+from routers import auth, documents, chat, settings
 
 from sqlalchemy import text
 
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
+app.include_router(settings.router)
 
 @app.get("/")
 def health_check():

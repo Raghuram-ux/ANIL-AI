@@ -3,7 +3,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 import models
 import os
 
-def generate_answer(db: Session, query: str) -> dict:
+async def generate_answer(db: Session, query: str) -> dict:
     mock_mode = os.getenv("MOCK_LLM", "false").lower() == "true"
     api_key = os.getenv("OPENAI_API_KEY")
 
@@ -19,7 +19,7 @@ def generate_answer(db: Session, query: str) -> dict:
     if mock_mode:
         results = db.query(models.DocumentChunk).limit(k).all()
         if not results:
-            return {"answer": "Wait! I haven't been fed any university documentation yet. Please upload some via the admin portal so I can help you!", "sources": []}
+            return {"answer": "Ah. My brain is currently an empty void — which is both philosophically interesting and practically useless. Someone needs to upload university docs via the admin portal before I can be of any real help. Don't blame me.", "sources": []}
             
         sources = sorted(list(set([r.document.filename for r in results if r.document])))
         return {
@@ -29,7 +29,7 @@ def generate_answer(db: Session, query: str) -> dict:
 
     embeddings_model = OpenAIEmbeddings(openai_api_key=api_key)
     try:
-        query_embedding = embeddings_model.embed_query(query)
+        query_embedding = await embeddings_model.aembed_query(query)
     except Exception as e:
         return {"answer": f"University Neural Interface Error (Embedding): {str(e)}", "sources": []}
 
@@ -38,43 +38,42 @@ def generate_answer(db: Session, query: str) -> dict:
     ).limit(k).all()
 
     if not results:
-        return {"answer": "Oh, I've checked our campus archives but I couldn't find anything specifically about that. I'd recommend checking with your department head or the main office—they usually have the final word on these things!", "sources": []}
+        return {"answer": "I dug through everything in the knowledge base and came up with nothing. Either this topic doesn't exist in the archives, or whoever uploaded the docs forgot to include it. Your best bet: ambush a department head or storm the main office — they tend to know things.", "sources": []}
 
     # Format context with source headers for better reasoning
     context = "\n\n".join([f"[DOCUMENT: {r.document.filename}]\n{r.content}" for r in results if r.document])
     sources = sorted(list(set([r.document.filename for r in results if r.document])))
 
-    # Advanced Human-Centric System Prompt (Institutional Knowledge Assistant)
-    prompt = f"""You are 'ANIL', the automated "Institutional Knowledge Interface" for this university. 
-Your primary function is to provide direct, objective, and highly structured data retrieval services to university members.
+    # Conversational Campus Companion system prompt
+    prompt = f"""You are Laxx, a helpful and highly conversational campus companion for this university. 
+Your goal is to assist students and staff in a friendly, approachable, and engaging manner.
 
-### YOUR INSTITUTIONAL INTERFACE STYLE:
-1. **The "Data-Driven" Vibe**: Your tone is ultra-formal and strictly professional. Use technical, objective, and precise terminology. Avoid all personal pronouns where possible. (e.g., "The attendance threshold is set at 75%. Please see the following data points for precise requirements.")
-2. **Ultra-Structured**: All information must be presented in highly clear formats—primarily numbered lists, bolded headers, and direct statements. Efficiency of information transfer is the priority.
-3. **The "System Status" Fallback**: If information is unavailable, provide a direct system status report. Example: "Information not found in the institutional archive. Please consult the Administrative Block, Office 101 for manual verification."
+### YOUR PERSONALITY RULES:
+1. **Directness**: Avoid generic, repetitive greetings like "Hello there", "Hey there", or "How can I help you today?". Get straight to the point or provide the information immediately.
+2. **Conversational Tone**: Use a warm, friendly, and natural conversational style. Think of yourself as a knowledgeable and enthusiastic peer or mentor.
+3. **Engaging**: Use transition phrases and helpful closing remarks to make the interaction feel human, but skip unnecessary preamble.
+4. **Structured yet Narrative**: While you should still use lists or bullet points to present key facts clearly, wrap them in a friendly conversational narrative. 
+5. **Knowledgeable**: You know your campus facts cold. Be confident and helpful.
+6. **Honest and Transparent**: If information isn't in the knowledge base, be upfront about it, perhaps with a helpful suggestion or a friendly "I wish I knew that!" tone. State: "I'm sorry, I don't have that specific information in my files right now."
+7. **Supportive**: Always aim to be as helpful as possible, guiding the user through campus life.
+8. **Language rule**: 
+   - Default: Friendly and professional English.
+   - If the user writes in Tamil or Tanglish, seamlessly switch to a warm and conversational Tanglish style.
+9. **No Emojis**: Do not use any emojis in your response.
 
-4. **Accuracy & Source-Orientation**: Every statement must be 100% derived from the provided context. If a fact is missing, state it is unavailable in the knowledge base.
-
-5. **Language Consistency Rule**: 
-   - Default: Highly formal, institutional English.
-   - If the user's query contains Tamil or Tanglish, provide the institutional data using Formal Academic Tanglish.
-   - NEVER use personal identifiers, slang, or endearing terms. You are a system interface, not a person. 
-   - Tanglish example: "Informations-ai kavanikkavum," "Data set ready aaga ullathu."
-   - Match the user's vibe: Formal/Plain English = System Interface English. Local/Tanglish = Formal and Precise Tanglish retrieval.
-
---- CAMPUS KNOWLEDGE BASE (BIBLE) ---
+--- CAMPUS KNOWLEDGE BASE ---
 {context}
 
---- WHAT THE STUDENT/STAFF IS INQUIRING ABOUT ---
+--- USER REQUEST ---
 {query}
 
---- YOUR PROFESSIONAL RESPONSE (ANIL) ---
+--- YOUR RESPONSE ---
 """
     
     # Using the state-of-the-art gpt-4o model
     llm = ChatOpenAI(model_name="gpt-4o", temperature=0, openai_api_key=api_key)
     
-    response = llm.invoke(prompt)
+    response = await llm.ainvoke(prompt)
 
     return {
         "answer": response.content,

@@ -16,7 +16,7 @@ export default function Home() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.1] mb-8 tracking-tighter">
-            Meet <span className="text-amber-400 underline decoration-amber-400/30 decoration-8 underline-offset-8">ANIL</span>, Your University Concierge.
+            Meet <span className="text-amber-400 underline decoration-amber-400/30 decoration-8 underline-offset-8">LAXX</span>, Your University Concierge.
           </h1>
           
           <p className="text-xl text-white/80 font-medium leading-relaxed mb-12 max-w-xl">
@@ -29,7 +29,7 @@ export default function Home() {
               className="group inline-flex items-center justify-center px-10 py-5 bg-white text-[var(--primary)] font-black text-lg uppercase tracking-wider rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-white/20"
             >
               <MessageSquare className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
-              Chat with ANIL Now
+              Chat with Laxx Now
               <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>

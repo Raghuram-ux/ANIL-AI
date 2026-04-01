@@ -33,3 +33,20 @@ class DocumentChunk(Base):
     embedding = Column(Vector(1536))
     
     document = relationship("Document", back_populates="chunks")
+
+class Setting(Base):
+    __tablename__ = "settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(String, nullable=False)
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    
+    id = Column(psqlUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(psqlUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    query = Column(String, nullable=False)
+    response = Column(String, nullable=False)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User", backref="messages")

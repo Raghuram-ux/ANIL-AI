@@ -1,40 +1,39 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import api from '@/lib/api';
-import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones } from 'lucide-react';
+import { useChat } from '@/context/ChatContext';
 
 export default function Chat() {
-  const [messages, setMessages] = useState<{role: string, content: string, sources?: string[]}[]>([]);
+  const { messages, setMessages, clearChat } = useChat();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [voiceState, setVoiceState] = useState<'idle'|'listening'|'processing'|'speaking'>('idle');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  
+  // Admin Global Voice Setup
+  const [globalVoiceName, setGlobalVoiceName] = useState("");
+  const [globalVoiceLang, setGlobalVoiceLang] = useState("");
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-
-  const clearChat = () => {
-    setMessages([]);
-    localStorage.removeItem('chat_messages');
-  };
   
-  // Load messages from localStorage on mount
+  // Load initial settings
   useEffect(() => {
-    const savedMessages = localStorage.getItem('chat_messages');
-    if (savedMessages) {
-      try {
-        setMessages(JSON.parse(savedMessages));
-      } catch (e) {
-        console.error("Failed to parse saved messages", e);
-      }
-    }
-  }, []);
+    // Set user role
+    setUserRole(localStorage.getItem('role'));
 
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem('chat_messages', JSON.stringify(messages));
-    }
-  }, [messages]);
+    // Fetch Admin Voice Setup
+    api.get('/settings/voice').then(res => {
+      if (res.data.voice_name) setGlobalVoiceName(res.data.voice_name);
+      if (res.data.voice_lang) setGlobalVoiceLang(res.data.voice_lang);
+    }).catch(err => console.error("Could not fetch global voice setup", err));
+
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,28 +44,44 @@ export default function Chat() {
     if (!voiceEnabled || typeof window === 'undefined') return;
     window.speechSynthesis.cancel(); 
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Detect if content is likely Tamil (checking for Tamil script range)
-    const hasTamilScript = /[\u0B80-\u0BFF]/.test(text);
-    
-    // Attempt to find a suitable voice
+    // Filter out emojis from the spoken text so they aren't "read" aloud
+    const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     const voices = window.speechSynthesis.getVoices();
+    
     let selectedVoice = null;
 
-    if (hasTamilScript) {
-      utterance.lang = 'ta-IN';
-      selectedVoice = voices.find(v => v.lang.startsWith('ta')) || null;
-    } else {
-      // For Tanglish/English, en-IN often sounds more natural for this use case
-      utterance.lang = 'en-IN';
-      selectedVoice = voices.find(v => v.lang === 'en-IN') || voices.find(v => v.lang.startsWith('en')) || null;
+    if (globalVoiceName) {
+      selectedVoice = voices.find(v => v.name === globalVoiceName);
+    }
+    if (!selectedVoice && globalVoiceLang) {
+      selectedVoice = voices.find(v => v.lang.startsWith(globalVoiceLang));
+    }
+    if (!selectedVoice) {
+       // Fallback logic preferring female voices
+       const hasTamilScript = /[\u0B80-\u0BFF]/.test(text);
+       if (hasTamilScript) {
+         utterance.lang = 'ta-IN';
+         selectedVoice = voices.find(v => v.lang.startsWith('ta') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) || 
+                         voices.find(v => v.lang.startsWith('ta')) || null;
+       } else {
+         utterance.lang = 'en-IN';
+         selectedVoice = voices.find(v => v.lang === 'en-IN' && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) || 
+                         voices.find(v => v.lang === 'en-IN') ||
+                         voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) ||
+                         voices.find(v => v.lang.startsWith('en')) || null;
+       }
     }
 
     if (selectedVoice) utterance.voice = selectedVoice;
     
     utterance.rate = 1.0; 
     utterance.pitch = 1.0;
+
+    utterance.onstart = () => setVoiceState('speaking');
+    utterance.onend = () => setVoiceState('idle');
+    utterance.onerror = () => setVoiceState('idle');
+
     window.speechSynthesis.speak(utterance);
   };
 
@@ -78,38 +93,57 @@ export default function Chat() {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'en-IN'; // Better support for Indian English/Tanglish accent
+        recognitionRef.current.lang = globalVoiceLang || 'en-IN'; // Better support for Indian English/Tanglish accent
 
         recognitionRef.current.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
           setInput(transcript);
           setIsListening(false);
+          setVoiceState('processing');
         };
 
         recognitionRef.current.onerror = (event: any) => {
           console.error("Speech recognition error:", event.error);
+          if (event.error === 'network') {
+             alert("Speech Recognition failed: Network error. Note that this feature requires a secure connection (HTTPS or localhost) and an active internet connection to your browser's speech service.");
+          } else if (event.error === 'not-allowed') {
+             alert("Microphone access denied. Please allow microphone permissions.");
+          }
           setIsListening(false);
+          setVoiceState('idle');
         };
 
         recognitionRef.current.onend = () => {
           setIsListening(false);
+          // Auto send logic inside useEffect hook relies on latest state changes, 
+          // but we handle auto-send inside the effect watching 'input' if Voice Mode is active
         };
       }
     }
-  }, []);
+  }, [globalVoiceLang]);
+
+  // Auto trigger handleSend if we just finished listening and are in Voice Mode
+  useEffect(() => {
+    if (isVoiceMode && input.trim() && !isListening && voiceState === 'processing') {
+      handleSend();
+    }
+  }, [input, isListening, isVoiceMode, voiceState]);
 
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
+      setVoiceState('idle');
     } else {
       if (!recognitionRef.current) {
         alert("Speech recognition is not supported in this browser.");
         return;
       }
       try {
+        window.speechSynthesis.cancel();
         recognitionRef.current.start();
         setIsListening(true);
+        setVoiceState('listening');
       } catch (e) {
         console.error("Failed to start listening:", e);
       }
@@ -119,6 +153,8 @@ export default function Chat() {
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
+
+    if (!isVoiceMode) setVoiceState('processing');
 
     const userMessage = input.trim();
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
@@ -132,11 +168,12 @@ export default function Chat() {
         content: res.data.answer,
         sources: res.data.sources
       }]);
-      // Speak the response if voice is enabled
+      // Speak the response 
       speak(res.data.answer);
     } catch (err) {
       console.error(err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error communicating with the university servers.' }]);
+      setVoiceState('idle');
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +231,7 @@ export default function Chat() {
               {msg.role === 'assistant' && (
                 <div className="flex items-center mb-3 text-[var(--primary)] font-bold">
                   <Sparkles className="w-4 h-4 mr-2" />
-                  <span className="text-[10px] uppercase tracking-[0.2em]">Concierge AI</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em]">Laxx</span>
                 </div>
               )}
               {msg.role === 'user' && (
@@ -206,7 +243,7 @@ export default function Chat() {
               
               <div className="whitespace-pre-wrap leading-relaxed transition-colors">{msg.content}</div>
               
-              {msg.sources && msg.sources.length > 0 && (
+              {msg.role === 'assistant' && userRole === 'admin' && msg.sources && msg.sources.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-[var(--border)] opacity-80">
                   <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest mb-2">Campus Sources:</p>
                   <ul className="text-xs text-[var(--foreground)] opacity-70 list-disc list-inside space-y-1">
@@ -232,35 +269,80 @@ export default function Chat() {
       </div>
 
       <div className="p-4 bg-[var(--card)] border-t border-[var(--border)] transition-colors">
-        <form onSubmit={handleSend} className="flex space-x-3 items-center">
-          <input
-            type="text"
-            className="flex-1 bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] rounded-full px-6 py-3.5 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:bg-[var(--card)] transition-all"
-            placeholder="Type your question..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={isLoading}
-          />
-          <button
-            type="button"
-            onClick={toggleListening}
-            disabled={isLoading}
-            className={`w-14 h-14 flex items-center justify-center rounded-full transition-all shrink-0 shadow-md ${
-              isListening 
-                ? 'bg-red-500 text-white animate-pulse shadow-red-500/50' 
-                : 'bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)]'
-            }`}
-          >
-            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </button>
-          <button 
-            type="submit" 
-            disabled={!input.trim() || isLoading}
-            className="bg-[var(--primary)] hover:opacity-90 text-white disabled:bg-slate-300 rounded-full w-14 h-14 flex items-center justify-center transition-all shrink-0 shadow-md"
-          >
-            <Send className="w-5 h-5 ml-1" />
-          </button>
-        </form>
+        
+        {isVoiceMode ? (
+          <div className="flex flex-col items-center justify-center p-6 bg-[var(--secondary)] rounded-3xl animate-in slide-in-from-bottom-10 fade-in duration-500 relative overflow-hidden h-32">
+             {/* Animations based on state */}
+             {voiceState === 'listening' && (
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-20 h-20 bg-blue-500/20 rounded-full animate-ping"></div>
+               </div>
+             )}
+             {voiceState === 'speaking' && (
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-24 h-24 bg-amber-500/20 rounded-full animate-pulse transition-all duration-75"></div>
+               </div>
+             )}
+             
+             <div className="relative z-10 flex items-center justify-between w-full">
+                <button 
+                  onClick={() => setIsVoiceMode(false)}
+                  className="px-4 py-2 text-xs font-bold text-[var(--foreground)] opacity-60 hover:opacity-100 uppercase tracking-widest"
+                >
+                  Exit Voice
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`w-20 h-20 flex items-center justify-center rounded-full transition-all shadow-xl z-20 ${
+                    voiceState === 'listening' 
+                      ? 'bg-red-500 text-white shadow-red-500/50 scale-110' 
+                      : voiceState === 'speaking'
+                      ? 'bg-[var(--foreground)] text-[var(--background)] shadow-[var(--foreground)]/30 scale-105'
+                      : voiceState === 'processing'
+                      ? 'bg-slate-500 text-white animate-spin'
+                      : 'bg-[var(--primary)] text-white hover:scale-105'
+                  }`}
+                >
+                  {voiceState === 'listening' ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
+                </button>
+                
+                <div className="w-20"></div> {/* Spacer to keep mic centered */}
+             </div>
+             <p className="text-[10px] mt-4 uppercase font-bold tracking-widest opacity-50 z-10">
+                {voiceState === 'listening' ? 'Listening...' : voiceState === 'processing' ? 'Thinking...' : voiceState === 'speaking' ? 'Speaking...' : 'Tap Mic to Speak'}
+             </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSend} className="flex space-x-3 items-center">
+            <input
+              type="text"
+              className="flex-1 bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] rounded-full px-6 py-3.5 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:bg-[var(--card)] transition-all"
+              placeholder="Type your question..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isLoading}
+            />
+            {/* The Voice Mode toggle button */}
+            <button
+              type="button"
+              onClick={() => setIsVoiceMode(true)}
+              disabled={isLoading}
+              className="w-14 h-14 flex items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)] transition-all shrink-0 shadow-sm"
+              title="Enter Voice Mode"
+            >
+              <Headphones className="w-5 h-5" />
+            </button>
+            <button 
+              type="submit" 
+              disabled={!input.trim() || isLoading}
+              className="bg-[var(--primary)] hover:opacity-90 text-white disabled:bg-slate-300 rounded-full w-14 h-14 flex items-center justify-center transition-all shrink-0 shadow-md"
+            >
+              <Send className="w-5 h-5 ml-1" />
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

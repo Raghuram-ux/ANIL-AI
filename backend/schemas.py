@@ -43,3 +43,7 @@ class TextKnowledgeCreate(BaseModel):
     title: str
     content: str
     category: Optional[str] = "general"
+
+class VoiceSetting(BaseModel):
+    voice_name: str
+    voice_lang: str

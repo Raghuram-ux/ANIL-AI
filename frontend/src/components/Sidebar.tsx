@@ -36,7 +36,7 @@ export default function Sidebar() {
 
   const navItems = [
     { name: 'Home', href: '/', icon: Home, adminOnly: false },
-    { name: 'Chat with ANIL', href: '/chat', icon: MessageSquare, adminOnly: false },
+    { name: 'Chat with Laxx', href: '/chat', icon: MessageSquare, adminOnly: false },
     { name: 'Document Library', href: '/admin', icon: BookOpen, adminOnly: true },
     { name: 'Add Document', href: '/add-document', icon: Sparkles, adminOnly: true },
   ];

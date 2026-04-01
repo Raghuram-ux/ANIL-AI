@@ -17,4 +17,5 @@ backend/build/
 # Misc
 .DS_Store
 *.log
+chat_error_log.txt
 *.sqlite3

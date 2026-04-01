@@ -2,10 +2,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { Trash2, FileText } from 'lucide-react';
+import { Trash2, FileText, Volume2, Save } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [documents, setDocuments] = useState([]);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceName, setSelectedVoiceName] = useState("");
+  const [selectedVoiceLang, setSelectedVoiceLang] = useState("");
+
   const router = useRouter();
 
   useEffect(() => {
@@ -14,6 +18,13 @@ export default function AdminDashboard() {
       router.push('/');
     } else {
       fetchDocuments();
+      fetchVoiceSetting();
+      
+      const populateVoices = () => setVoices(window.speechSynthesis.getVoices());
+      populateVoices();
+      if (typeof window !== "undefined" && window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+      }
     }
   }, [router]);
 
@@ -26,6 +37,16 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchVoiceSetting = async () => {
+    try {
+      const res = await api.get('/settings/voice');
+      if (res.data.voice_name) setSelectedVoiceName(res.data.voice_name);
+      if (res.data.voice_lang) setSelectedVoiceLang(res.data.voice_lang);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this document?')) return;
     try {
@@ -33,6 +54,16 @@ export default function AdminDashboard() {
       fetchDocuments();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleSaveVoice = async () => {
+    try {
+      await api.post('/settings/voice', { voice_name: selectedVoiceName, voice_lang: selectedVoiceLang });
+      alert("Voice settings successfully saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save voice settings");
     }
   };
 
@@ -87,6 +118,57 @@ export default function AdminDashboard() {
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="bg-[var(--card)] p-8 rounded-2xl shadow-xl border border-[var(--border)] glass-card mt-8">
+        <div className="flex items-center mb-6">
+          <Volume2 className="w-6 h-6 mr-3 text-[var(--primary)]" />
+          <h3 className="text-xl font-bold text-[var(--foreground)]">Global Voice Configuration</h3>
+        </div>
+        <p className="text-[var(--foreground)] opacity-70 mb-6 text-sm">
+          Select the default text-to-speech voice used by the chatbot for all users. Note that voice availability may vary by the browser, falling back to basic matching if exactly not found.
+        </p>
+        
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-[var(--primary)] mb-2">Select Voice</label>
+            <select 
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--primary)] focus:outline-none"
+              value={selectedVoiceName}
+              onChange={(e) => {
+                const voice = voices.find(v => v.name === e.target.value);
+                setSelectedVoiceName(e.target.value);
+                if (voice) setSelectedVoiceLang(voice.lang);
+              }}
+            >
+              <option value="">-- System Default --</option>
+              {voices.map((voice, idx) => (
+                <option key={idx} value={voice.name}>
+                  {voice.name} ({voice.lang})
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex-1">
+            <label className="block text-xs font-bold uppercase tracking-widest text-[var(--primary)] mb-2">Target Language Code</label>
+            <input 
+              type="text" 
+              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--foreground)] opacity-70 cursor-not-allowed"
+              value={selectedVoiceLang}
+              readOnly
+              placeholder="e.g. en-US"
+            />
+          </div>
+        </div>
+        
+        <button 
+          onClick={handleSaveVoice}
+          className="flex items-center justify-center px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-md"
+        >
+          <Save className="w-5 h-5 mr-2" />
+          Save Voice Settings
+        </button>
       </div>
     </div>
   );
