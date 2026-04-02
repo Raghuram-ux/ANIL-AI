@@ -104,11 +104,11 @@ export default function AddDocument() {
           </button>
         </div>
 
-        <div className="p-10">
+        <div className="p-6 md:p-10">
           {activeTab === 'upload' ? (
             <form onSubmit={handleUpload} className="space-y-8">
               
-              <div className="group border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--background)] p-16 text-center hover:border-[var(--primary)] transition-all cursor-pointer relative overflow-hidden">
+              <div className="group border-2 border-dashed border-[var(--border)] rounded-2xl bg-[var(--background)] p-8 md:p-16 text-center hover:border-[var(--primary)] transition-all cursor-pointer relative overflow-hidden">
                 <input 
                   type="file" 
                   accept=".txt,.md,.pdf"

@@ -3,9 +3,9 @@ import { MessageSquare, BookOpen, ShieldCheck, Sparkles, ArrowRight, Zap, Gradua
 
 export default function Home() {
   return (
-    <div className="max-w-6xl mx-auto py-12 px-4 transition-all duration-300">
+    <div className="max-w-6xl mx-auto py-8 md:py-12 px-4 transition-all duration-300">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-[var(--primary)] p-12 md:p-24 text-white shadow-2xl mb-16">
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-[var(--primary)] p-8 md:p-24 text-white shadow-2xl mb-12 md:mb-16">
         <div className="absolute top-0 right-0 -m-12 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -m-24 w-80 h-80 bg-amber-500 opacity-10 rounded-full blur-3xl"></div>
         
@@ -15,22 +15,22 @@ export default function Home() {
             Empowering Campus Intelligence
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.1] mb-8 tracking-tighter">
-            Meet <span className="text-amber-400 underline decoration-amber-400/30 decoration-8 underline-offset-8">LAXX</span>, Your University Concierge.
+          <h1 className="text-4xl md:text-7xl font-extrabold leading-[1.1] mb-6 md:mb-8 tracking-tighter">
+            Meet <span className="text-amber-400 underline decoration-amber-400/30 decoration-4 md:decoration-8 underline-offset-4 md:underline-offset-8">LAXX</span>, Your University Concierge.
           </h1>
           
-          <p className="text-xl text-white/80 font-medium leading-relaxed mb-12 max-w-xl">
+          <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed mb-8 md:mb-12 max-w-xl">
             The next generation of campus support. Instant answers to your syllabus questions, attendance queries, and university policies—powered by state-of-the-art AI.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6">
             <Link 
               href="/chat"
-              className="group inline-flex items-center justify-center px-10 py-5 bg-white text-[var(--primary)] font-black text-lg uppercase tracking-wider rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-white/20"
+              className="group inline-flex items-center justify-center px-8 md:px-10 py-4 md:py-5 bg-white text-[var(--primary)] font-black text-base md:text-lg uppercase tracking-wider rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-white/20"
             >
-              <MessageSquare className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
+              <MessageSquare className="w-5 h-5 md:w-6 md:h-6 mr-3 group-hover:rotate-12 transition-transform" />
               Chat with Laxx Now
-              <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 ml-3 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </div>

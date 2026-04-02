@@ -74,7 +74,7 @@ export default function AdminDashboard() {
         <p className="text-[var(--foreground)] opacity-70 mt-1">Audit and manage the active university intelligence datasets.</p>
       </div>
 
-      <div className="bg-[var(--card)] p-8 rounded-2xl shadow-xl border border-[var(--border)] glass-card">
+      <div className="bg-[var(--card)] p-4 md:p-8 rounded-2xl shadow-xl border border-[var(--border)] glass-card">
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-xl font-bold text-[var(--foreground)] flex items-center">
             <FileText className="w-6 h-6 mr-3 text-amber-500" />
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      <div className="bg-[var(--card)] p-8 rounded-2xl shadow-xl border border-[var(--border)] glass-card mt-8">
+      <div className="bg-[var(--card)] p-4 md:p-8 rounded-2xl shadow-xl border border-[var(--border)] glass-card mt-8">
         <div className="flex items-center mb-6">
           <Volume2 className="w-6 h-6 mr-3 text-[var(--primary)]" />
           <h3 className="text-xl font-bold text-[var(--foreground)]">Global Voice Configuration</h3>
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
         
         <button 
           onClick={handleSaveVoice}
-          className="flex items-center justify-center px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-md"
+          className="w-full md:w-auto flex items-center justify-center px-6 py-3 bg-[var(--primary)] text-white font-bold rounded-xl hover:opacity-90 transition-all shadow-md"
         >
           <Save className="w-5 h-5 mr-2" />
           Save Voice Settings

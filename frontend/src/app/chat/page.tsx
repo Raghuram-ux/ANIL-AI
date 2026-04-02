@@ -180,14 +180,14 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[var(--background)] transition-all">
-        <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
+    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-[var(--background)] transition-all">
+        <div className="flex justify-between items-center mb-4 md:mb-6 border-b border-[var(--border)] pb-4">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-[var(--primary)] rounded-lg shadow-lg shadow-[#1e62ff]/20">
-              <BookOpen className="w-5 h-5 text-white" />
+            <div className="p-1.5 md:p-2 bg-[var(--primary)] rounded-lg shadow-lg shadow-[#1e62ff]/20">
+              <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-[var(--foreground)] tracking-tight">Campus Support Chat</h1>
+            <h1 className="text-base md:text-lg font-bold text-[var(--foreground)] tracking-tight">Campus Support</h1>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -223,7 +223,7 @@ export default function Chat() {
         
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-            <div className={`max-w-[85%] rounded-2xl p-5 shadow-sm transition-all hover:shadow-md ${
+            <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl p-4 md:p-5 shadow-sm transition-all hover:shadow-md ${
               msg.role === 'user' 
                 ? 'bg-[var(--primary)] text-white rounded-tr-none' 
                 : 'bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] rounded-tl-none glass-card'
@@ -241,7 +241,7 @@ export default function Chat() {
                 </div>
               )}
               
-              <div className="whitespace-pre-wrap leading-relaxed transition-colors">{msg.content}</div>
+              <div className="whitespace-pre-wrap leading-relaxed transition-colors text-sm md:text-base">{msg.content}</div>
               
               {msg.role === 'assistant' && userRole === 'admin' && msg.sources && msg.sources.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-[var(--border)] opacity-80">
@@ -271,31 +271,31 @@ export default function Chat() {
       <div className="p-4 bg-[var(--card)] border-t border-[var(--border)] transition-colors">
         
         {isVoiceMode ? (
-          <div className="flex flex-col items-center justify-center p-6 bg-[var(--secondary)] rounded-3xl animate-in slide-in-from-bottom-10 fade-in duration-500 relative overflow-hidden h-32">
+          <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-[var(--secondary)] rounded-3xl animate-in slide-in-from-bottom-10 fade-in duration-500 relative overflow-hidden h-40 md:h-32">
              {/* Animations based on state */}
              {voiceState === 'listening' && (
                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-blue-500/20 rounded-full animate-ping"></div>
+                  <div className="w-16 md:w-20 h-16 md:h-20 bg-blue-500/20 rounded-full animate-ping"></div>
                </div>
              )}
              {voiceState === 'speaking' && (
                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-24 h-24 bg-amber-500/20 rounded-full animate-pulse transition-all duration-75"></div>
+                  <div className="w-20 md:w-24 h-20 md:h-24 bg-amber-500/20 rounded-full animate-pulse transition-all duration-75"></div>
                </div>
              )}
              
              <div className="relative z-10 flex items-center justify-between w-full">
                 <button 
                   onClick={() => setIsVoiceMode(false)}
-                  className="px-4 py-2 text-xs font-bold text-[var(--foreground)] opacity-60 hover:opacity-100 uppercase tracking-widest"
+                  className="px-2 md:px-4 py-2 text-[10px] md:text-xs font-bold text-[var(--foreground)] opacity-60 hover:opacity-100 uppercase tracking-widest"
                 >
-                  Exit Voice
+                  Exit
                 </button>
                 
                 <button
                   type="button"
                   onClick={toggleListening}
-                  className={`w-20 h-20 flex items-center justify-center rounded-full transition-all shadow-xl z-20 ${
+                  className={`w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full transition-all shadow-xl z-20 ${
                     voiceState === 'listening' 
                       ? 'bg-red-500 text-white shadow-red-500/50 scale-110' 
                       : voiceState === 'speaking'
@@ -305,21 +305,21 @@ export default function Chat() {
                       : 'bg-[var(--primary)] text-white hover:scale-105'
                   }`}
                 >
-                  {voiceState === 'listening' ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
+                  {voiceState === 'listening' ? <MicOff className="w-6 h-6 md:w-8 md:h-8" /> : <Mic className="w-6 h-6 md:w-8 md:h-8" />}
                 </button>
                 
-                <div className="w-20"></div> {/* Spacer to keep mic centered */}
+                <div className="w-10 md:w-20"></div> {/* Spacer to keep mic centered */}
              </div>
-             <p className="text-[10px] mt-4 uppercase font-bold tracking-widest opacity-50 z-10">
-                {voiceState === 'listening' ? 'Listening...' : voiceState === 'processing' ? 'Thinking...' : voiceState === 'speaking' ? 'Speaking...' : 'Tap Mic to Speak'}
+             <p className="text-[9px] md:text-[10px] mt-2 md:mt-4 uppercase font-bold tracking-widest opacity-50 z-10">
+                {voiceState === 'listening' ? 'Listening...' : voiceState === 'processing' ? 'Thinking...' : voiceState === 'speaking' ? 'Speaking...' : 'Tap Mic'}
              </p>
           </div>
         ) : (
-          <form onSubmit={handleSend} className="flex space-x-3 items-center">
+          <form onSubmit={handleSend} className="flex space-x-2 md:space-x-3 items-center">
             <input
               type="text"
-              className="flex-1 bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] rounded-full px-6 py-3.5 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:bg-[var(--card)] transition-all"
-              placeholder="Type your question..."
+              className="flex-1 bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] rounded-full px-4 md:px-6 py-2.5 md:py-3.5 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:bg-[var(--card)] transition-all"
+              placeholder="Question..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLoading}
@@ -329,17 +329,17 @@ export default function Chat() {
               type="button"
               onClick={() => setIsVoiceMode(true)}
               disabled={isLoading}
-              className="w-14 h-14 flex items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)] transition-all shrink-0 shadow-sm"
+              className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)] transition-all shrink-0 shadow-sm"
               title="Enter Voice Mode"
             >
-              <Headphones className="w-5 h-5" />
+              <Headphones className="w-4 h-4 md:w-5 md:h-5" />
             </button>
             <button 
               type="submit" 
               disabled={!input.trim() || isLoading}
-              className="bg-[var(--primary)] hover:opacity-90 text-white disabled:bg-slate-300 rounded-full w-14 h-14 flex items-center justify-center transition-all shrink-0 shadow-md"
+              className="bg-[var(--primary)] hover:opacity-90 text-white disabled:bg-slate-300 rounded-full w-10 h-10 md:w-14 md:h-14 flex items-center justify-center transition-all shrink-0 shadow-md"
             >
-              <Send className="w-5 h-5 ml-1" />
+              <Send className="w-4 h-4 md:w-5 md:h-5 md:ml-1" />
             </button>
           </form>
         )}
