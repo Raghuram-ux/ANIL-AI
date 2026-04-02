@@ -1,6 +1,8 @@
 "use client";
-import Chat from '../page';
+import dynamic from 'next/dynamic';
 import { ChatProvider } from '@/context/ChatContext';
+
+const Chat = dynamic(() => import('../page'), { ssr: false });
 
 export default function EmbedChat() {
   return (
