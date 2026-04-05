@@ -64,8 +64,8 @@ export default function Chat() {
     // Filter out emojis from the spoken text so they aren't "read" aloud
     const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
     
-    // SPECIAL CASE: EXTERNAL VOICES (Brian, Britteney)
-    if (globalVoiceName === 'Brian' || globalVoiceName === 'Britteney') {
+    // SPECIAL CASE: EXTERNAL VOICES (Brian, Brittney)
+    if (globalVoiceName === 'Brian' || globalVoiceName === 'Brittney') {
       try {
         setVoiceState('speaking');
         let fallbackTriggered = false;
@@ -79,10 +79,10 @@ export default function Chat() {
         };
         
         // Define the endpoint URL based on voice
-        // Since "Britteney" is not a standard Polly voice name, we map it to "Salli" (classic Streamlabs female voice).
+        const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const url = globalVoiceName === 'Brian'
           ? `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(cleanText)}`
-          : `https://api.streamelements.com/kappa/v2/speech?voice=Salli&text=${encodeURIComponent(cleanText)}`;
+          : `${backendBaseUrl}/chat/speech?text=${encodeURIComponent(cleanText)}`;
           
         const audio = new Audio(url);
         audioRef.current = audio;

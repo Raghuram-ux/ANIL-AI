@@ -138,7 +138,7 @@ export default function AdminDashboard() {
               onChange={(e) => {
                 const val = e.target.value;
                 setSelectedVoiceName(val);
-                if (val === 'Brian' || val === 'Britteney') {
+                if (val === 'Brian' || val === 'Brittney') {
                   setSelectedVoiceLang('en-US');
                 } else {
                   const voice = voices.find(v => v.name === val);
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
             >
               <option value="">-- System Default --</option>
               <option value="Brian">Brian (StreamElements)</option>
-              <option value="Britteney">Britteney (Streamlabs)</option>
+              <option value="Brittney">Brittney (ElevenLabs)</option>
               {voices.map((voice, idx) => (
                 <option key={idx} value={voice.name}>
                   {voice.name} ({voice.lang})
