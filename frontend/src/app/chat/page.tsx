@@ -64,11 +64,16 @@ export default function Chat() {
     // Filter out emojis from the spoken text so they aren't "read" aloud
     const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
     
-    // SPECIAL CASE: BRIAN VOICE (StreamElements API)
-    if (globalVoiceName === 'Brian') {
+    // SPECIAL CASE: EXTERNAL VOICES (Brian, Britteney)
+    if (globalVoiceName === 'Brian' || globalVoiceName === 'Britteney') {
       try {
         setVoiceState('speaking');
-        const url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(cleanText)}`;
+        
+        // Define the endpoint URL based on voice
+        const url = globalVoiceName === 'Brian'
+          ? `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(cleanText)}`
+          : `https://api.streamelements.com/kappa/v2/speech?voice=Britteney&text=${encodeURIComponent(cleanText)}`;
+          
         const audio = new Audio(url);
         audioRef.current = audio;
         audio.onended = () => {
@@ -76,16 +81,16 @@ export default function Chat() {
           audioRef.current = null;
         };
         audio.onerror = (e) => {
-          console.error("Audio error for Brian:", e);
+          console.error(`Audio error for ${globalVoiceName}:`, e);
           setVoiceState('idle');
           audioRef.current = null;
-          // Fallback to synthesis if StreamElements fails
+          // Fallback to synthesis if external API fails
           speakTraditionalSynthesis(cleanText);
         };
         audio.play();
         return;
       } catch (err) {
-        console.error("Could not play Brian via StreamElements", err);
+        console.error(`Could not play ${globalVoiceName} via external API`, err);
         setVoiceState('idle');
       }
     }
