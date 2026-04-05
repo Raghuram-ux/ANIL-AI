@@ -52,7 +52,7 @@ export default function Chat() {
 
   // Handle Speech Synthesis (TTS)
   const speak = (text: string) => {
-    if (!voiceEnabled || typeof window === 'undefined') return;
+    if (!voiceEnabled || globalVoiceName === 'Disabled' || typeof window === 'undefined') return;
     
     // Cancel any existing synthesis or audio playback
     window.speechSynthesis.cancel(); 

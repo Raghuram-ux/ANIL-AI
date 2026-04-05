@@ -150,6 +150,7 @@ export default function AdminDashboard() {
                 }
               }}
             >
+              <option value="Disabled">-- Turn Off Voice --</option>
               <option value="">-- System Default --</option>
               <option value="Brian">Brian (StreamElements)</option>
               <option value="Brittney">Brittney (ElevenLabs)</option>
