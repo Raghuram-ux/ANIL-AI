@@ -70,9 +70,10 @@ export default function Chat() {
         setVoiceState('speaking');
         
         // Define the endpoint URL based on voice
+        // Since "Britteney" is not a standard Polly voice name, we map it to "Salli" (classic Streamlabs female voice).
         const url = globalVoiceName === 'Brian'
           ? `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(cleanText)}`
-          : `https://api.streamelements.com/kappa/v2/speech?voice=Britteney&text=${encodeURIComponent(cleanText)}`;
+          : `https://api.streamelements.com/kappa/v2/speech?voice=Salli&text=${encodeURIComponent(cleanText)}`;
           
         const audio = new Audio(url);
         audioRef.current = audio;
