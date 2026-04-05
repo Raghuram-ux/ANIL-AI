@@ -136,9 +136,18 @@ export default function AdminDashboard() {
               className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--foreground)] focus:ring-2 focus:ring-[var(--primary)] focus:outline-none"
               value={selectedVoiceName}
               onChange={(e) => {
-                const voice = voices.find(v => v.name === e.target.value);
-                setSelectedVoiceName(e.target.value);
-                if (voice) setSelectedVoiceLang(voice.lang);
+                const val = e.target.value;
+                setSelectedVoiceName(val);
+                if (val === 'Brian') {
+                  setSelectedVoiceLang('en-US');
+                } else {
+                  const voice = voices.find(v => v.name === val);
+                  if (voice) {
+                    setSelectedVoiceLang(voice.lang);
+                  } else {
+                    setSelectedVoiceLang('');
+                  }
+                }
               }}
             >
               <option value="">-- System Default --</option>
