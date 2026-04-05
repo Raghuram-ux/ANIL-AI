@@ -21,6 +21,7 @@ export default function Chat() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Load initial settings
   useEffect(() => {
@@ -39,19 +40,66 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
   // Handle Speech Synthesis (TTS)
   const speak = (text: string) => {
     if (!voiceEnabled || typeof window === 'undefined') return;
+    
+    // Cancel any existing synthesis or audio playback
     window.speechSynthesis.cancel(); 
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
 
     // Filter out emojis from the spoken text so they aren't "read" aloud
     const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+    
+    // SPECIAL CASE: BRIAN VOICE (StreamElements API)
+    if (globalVoiceName === 'Brian') {
+      try {
+        setVoiceState('speaking');
+        const url = `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(cleanText)}`;
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setVoiceState('idle');
+          audioRef.current = null;
+        };
+        audio.onerror = (e) => {
+          console.error("Audio error for Brian:", e);
+          setVoiceState('idle');
+          audioRef.current = null;
+          // Fallback to synthesis if StreamElements fails
+          speakTraditionalSynthesis(cleanText);
+        };
+        audio.play();
+        return;
+      } catch (err) {
+        console.error("Could not play Brian via StreamElements", err);
+        setVoiceState('idle');
+      }
+    }
+
+    speakTraditionalSynthesis(cleanText);
+  };
+
+  const speakTraditionalSynthesis = (cleanText: string) => {
     const utterance = new SpeechSynthesisUtterance(cleanText);
     const voices = window.speechSynthesis.getVoices();
     
     let selectedVoice = null;
 
-    if (globalVoiceName) {
+    if (globalVoiceName && globalVoiceName !== 'Brian') {
       selectedVoice = voices.find(v => v.name === globalVoiceName);
     }
     if (!selectedVoice && globalVoiceLang) {
@@ -59,7 +107,7 @@ export default function Chat() {
     }
     if (!selectedVoice) {
        // Fallback logic preferring female voices
-       const hasTamilScript = /[\u0B80-\u0BFF]/.test(text);
+       const hasTamilScript = /[\u0B80-\u0BFF]/.test(cleanText);
        if (hasTamilScript) {
          utterance.lang = 'ta-IN';
          selectedVoice = voices.find(v => v.lang.startsWith('ta') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) || 
@@ -286,7 +334,15 @@ export default function Chat() {
              
              <div className="relative z-10 flex items-center justify-between w-full">
                 <button 
-                  onClick={() => setIsVoiceMode(false)}
+                  onClick={() => {
+                    setIsVoiceMode(false);
+                    window.speechSynthesis.cancel();
+                    if (audioRef.current) {
+                      audioRef.current.pause();
+                      audioRef.current = null;
+                    }
+                    setVoiceState('idle');
+                  }}
                   className="px-2 md:px-4 py-2 text-[10px] md:text-xs font-bold text-[var(--foreground)] opacity-60 hover:opacity-100 uppercase tracking-widest"
                 >
                   Exit

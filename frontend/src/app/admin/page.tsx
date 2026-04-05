@@ -142,6 +142,7 @@ export default function AdminDashboard() {
               }}
             >
               <option value="">-- System Default --</option>
+              <option value="Brian">Brian (StreamElements)</option>
               {voices.map((voice, idx) => (
                 <option key={idx} value={voice.name}>
                   {voice.name} ({voice.lang})
