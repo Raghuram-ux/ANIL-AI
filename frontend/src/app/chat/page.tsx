@@ -68,6 +68,15 @@ export default function Chat() {
     if (globalVoiceName === 'Brian' || globalVoiceName === 'Britteney') {
       try {
         setVoiceState('speaking');
+        let fallbackTriggered = false;
+        
+        const triggerFallback = () => {
+          if (fallbackTriggered) return;
+          fallbackTriggered = true;
+          setVoiceState('idle');
+          audioRef.current = null;
+          speakTraditionalSynthesis(cleanText);
+        };
         
         // Define the endpoint URL based on voice
         // Since "Britteney" is not a standard Polly voice name, we map it to "Salli" (classic Streamlabs female voice).
@@ -83,17 +92,11 @@ export default function Chat() {
         };
         audio.onerror = (e) => {
           console.error(`Audio error for ${globalVoiceName}:`, e);
-          setVoiceState('idle');
-          audioRef.current = null;
-          // Fallback to synthesis if external API fails
-          speakTraditionalSynthesis(cleanText);
+          triggerFallback();
         };
         audio.play().catch((playError) => {
           console.error(`Audio playback rejected for ${globalVoiceName}:`, playError);
-          setVoiceState('idle');
-          audioRef.current = null;
-          // Fallback to synthesis if play is blocked by the browser
-          speakTraditionalSynthesis(cleanText);
+          triggerFallback();
         });
         return;
       } catch (err) {
