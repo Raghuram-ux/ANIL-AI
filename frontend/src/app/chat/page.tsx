@@ -88,10 +88,16 @@ export default function Chat() {
           // Fallback to synthesis if external API fails
           speakTraditionalSynthesis(cleanText);
         };
-        audio.play();
+        audio.play().catch((playError) => {
+          console.error(`Audio playback rejected for ${globalVoiceName}:`, playError);
+          setVoiceState('idle');
+          audioRef.current = null;
+          // Fallback to synthesis if play is blocked by the browser
+          speakTraditionalSynthesis(cleanText);
+        });
         return;
       } catch (err) {
-        console.error(`Could not play ${globalVoiceName} via external API`, err);
+        console.error(`Could not initialize audio for ${globalVoiceName}`, err);
         setVoiceState('idle');
       }
     }
@@ -109,7 +115,9 @@ export default function Chat() {
       selectedVoice = voices.find(v => v.name === globalVoiceName);
     }
     if (!selectedVoice && globalVoiceLang) {
-      selectedVoice = voices.find(v => v.lang.startsWith(globalVoiceLang));
+      // Prefer female voices for the specified language
+      selectedVoice = voices.find(v => v.lang.startsWith(globalVoiceLang) && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha'))) ||
+                      voices.find(v => v.lang.startsWith(globalVoiceLang));
     }
     if (!selectedVoice) {
        // Fallback logic preferring female voices
