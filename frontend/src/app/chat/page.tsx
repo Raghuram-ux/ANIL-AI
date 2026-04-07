@@ -4,6 +4,14 @@ import api from '@/lib/api';
 import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 
+const ELEVENLABS_VOICES: Record<string, string> = {
+  "Bella (Cute)": "EXAVITQu4vr4xnSDxMaL",
+  "Rachel (Friendly)": "21m00Tcm4TlvDq8ikWAM",
+  "Gigi (Enthusiastic)": "jBpf3uUE9Gu6KdeP9E0p",
+  "Elli (Professional)": "MF3mGyEYCl7XYW7LdxSj",
+  "Charlotte (Soft)": "xb0MDR63uEAbR37vP7zX"
+};
+
 export default function Chat() {
   const { messages, setMessages, clearChat } = useChat();
   const [input, setInput] = useState('');
@@ -64,8 +72,8 @@ export default function Chat() {
     // Filter out emojis from the spoken text so they aren't "read" aloud
     const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
     
-    // SPECIAL CASE: EXTERNAL VOICES (Brian, Bella (Cute))
-    if (globalVoiceName === 'Brian' || globalVoiceName === 'Bella (Cute)') {
+    // SPECIAL CASE: ELEVENLABS PREMIUM VOICES
+    if (Object.keys(ELEVENLABS_VOICES).includes(globalVoiceName)) {
       try {
         setVoiceState('speaking');
         let fallbackTriggered = false;
@@ -78,11 +86,10 @@ export default function Chat() {
           speakTraditionalSynthesis(cleanText);
         };
         
-        // Define the endpoint URL based on voice
+        // Define the endpoint URL with the specific voice ID
         const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const url = globalVoiceName === 'Brian'
-          ? `https://api.streamelements.com/kappa/v2/speech?voice=Brian&text=${encodeURIComponent(cleanText)}`
-          : `${backendBaseUrl}/chat/speech?text=${encodeURIComponent(cleanText)}`;
+        const vId = ELEVENLABS_VOICES[globalVoiceName];
+        const url = `${backendBaseUrl}/chat/speech?text=${encodeURIComponent(cleanText)}&voice_id=${vId}`;
           
         const audio = new Audio(url);
         audioRef.current = audio;
@@ -91,16 +98,16 @@ export default function Chat() {
           audioRef.current = null;
         };
         audio.onerror = (e) => {
-          console.error(`Audio error for ${globalVoiceName}:`, e);
+          console.error(`Audio error for premium voice ${globalVoiceName}:`, e);
           triggerFallback();
         };
         audio.play().catch((playError) => {
-          console.error(`Audio playback rejected for ${globalVoiceName}:`, playError);
+          console.error(`Audio playback rejected for premium voice ${globalVoiceName}:`, playError);
           triggerFallback();
         });
         return;
       } catch (err) {
-        console.error(`Could not initialize audio for ${globalVoiceName}`, err);
+        console.error(`Could not initialize audio for premium voice ${globalVoiceName}`, err);
         setVoiceState('idle');
       }
     }

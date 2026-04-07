@@ -70,12 +70,12 @@ def get_global_chat_logs(
     return logs
 
 @router.get("/speech")
-def text_to_speech(text: str = Query(...)):
+def text_to_speech(text: str = Query(...), voice_id: str = Query("EXAVITQu4vr4xnSDxMaL")):
     api_key = os.getenv("ELEVENLABS_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ElevenLabs API key not configured")
 
-    url = "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL"
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",

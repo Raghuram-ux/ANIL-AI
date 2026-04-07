@@ -4,6 +4,14 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Trash2, FileText, Volume2, Save } from 'lucide-react';
 
+const ELEVENLABS_VOICES: Record<string, string> = {
+  "Bella (Cute)": "EXAVITQu4vr4xnSDxMaL",
+  "Rachel (Friendly)": "21m00Tcm4TlvDq8ikWAM",
+  "Gigi (Enthusiastic)": "jBpf3uUE9Gu6KdeP9E0p",
+  "Elli (Professional)": "MF3mGyEYCl7XYW7LdxSj",
+  "Charlotte (Soft)": "xb0MDR63uEAbR37vP7zX"
+};
+
 export default function AdminDashboard() {
   const [documents, setDocuments] = useState([]);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -126,7 +134,7 @@ export default function AdminDashboard() {
           <h3 className="text-xl font-bold text-[var(--foreground)]">Global Voice Configuration</h3>
         </div>
         <p className="text-[var(--foreground)] opacity-70 mb-6 text-sm">
-          Select the default text-to-speech voice used by the chatbot for all users. Note that voice availability may vary by the browser, falling back to basic matching if exactly not found.
+          Select the default text-to-speech voice used by the chatbot for all users. Note that premium ElevenLabs voices are ultra-realistic.
         </p>
         
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -138,7 +146,7 @@ export default function AdminDashboard() {
               onChange={(e) => {
                 const val = e.target.value;
                 setSelectedVoiceName(val);
-                if (val === 'Bella (Cute)') {
+                if (Object.keys(ELEVENLABS_VOICES).includes(val)) {
                   setSelectedVoiceLang('en-US');
                 } else {
                   const voice = voices.find(v => v.name === val);
@@ -152,23 +160,27 @@ export default function AdminDashboard() {
             >
               <option value="Disabled">-- Turn Off Voice --</option>
               <option value="">-- System Default --</option>
-              <option value="Bella (Cute)">Bella (Cute - ElevenLabs)</option>
-              {voices
-                .filter(v => {
-                  const name = v.name.toLowerCase();
-                  return !name.includes('david') && 
-                         !name.includes('mark') && 
-                         !name.includes('george') && 
-                         !name.includes('google us english') && 
-                         !name.includes('microsoft ravi') && 
-                         !name.includes('male');
-                })
-                .map((voice, idx) => (
-                  <option key={idx} value={voice.name}>
-                    {voice.name} ({voice.lang})
-                  </option>
-                ))
-              }
+              {Object.keys(ELEVENLABS_VOICES).map(vName => (
+                <option key={vName} value={vName}>{vName} (ElevenLabs Premium)</option>
+              ))}
+              <optgroup label="Browser System Voices">
+                {voices
+                  .filter(v => {
+                    const name = v.name.toLowerCase();
+                    return !name.includes('david') && 
+                           !name.includes('mark') && 
+                           !name.includes('george') && 
+                           !name.includes('google us english') && 
+                           !name.includes('microsoft ravi') && 
+                           !name.includes('male');
+                  })
+                  .map((voice, idx) => (
+                    <option key={idx} value={voice.name}>
+                      {voice.name} ({voice.lang})
+                    </option>
+                  ))
+                }
+              </optgroup>
             </select>
           </div>
           
