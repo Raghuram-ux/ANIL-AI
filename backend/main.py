@@ -15,6 +15,8 @@ with database.engine.connect() as conn:
 with database.engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS audience VARCHAR DEFAULT 'all';"))
+        # Force fill any existing nulls just in case
+        conn.execute(text("UPDATE documents SET audience = 'all' WHERE audience IS NULL;"))
         conn.commit()
     except Exception as e:
         print(f"Migration warning: {e}")
