@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import api from '@/lib/api';
-import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones } from 'lucide-react';
+import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones, MapPin, Clock, Calendar, CreditCard, ChevronRight } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 
 const ELEVENLABS_VOICES: Record<string, string> = {
@@ -11,6 +11,13 @@ const ELEVENLABS_VOICES: Record<string, string> = {
   "Elli (Professional)": "MF3mGyEYCl7XYW7LdxSj",
   "Charlotte (Soft)": "xb0MDR63uEAbR37vP7zX"
 };
+
+const RECOMMENDATIONS = [
+  { title: "Campus Map", query: "Show me the campus map", icon: MapPin, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { title: "Attendance", query: "What are the attendance requirements?", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { title: "Holiday List", query: "Can I see the academic holiday list?", icon: Calendar, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  { title: "Fee Status", query: "Tell me about the university fee structure", icon: CreditCard, color: "text-purple-500", bg: "bg-purple-500/10" }
+];
 
 export default function Chat() {
   const { messages, setMessages, clearChat } = useChat();
@@ -229,13 +236,13 @@ export default function Chat() {
     }
   };
 
-  const handleSend = async (e?: React.FormEvent) => {
+  const handleSend = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
-    if (!input.trim()) return;
+    const userMessage = overrideQuery || input.trim();
+    if (!userMessage) return;
 
     if (!isVoiceMode) setVoiceState('processing');
 
-    const userMessage = input.trim();
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setInput('');
     setIsLoading(true);
@@ -300,14 +307,50 @@ export default function Chat() {
         </div>
 
         {messages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-12 space-y-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[var(--primary)] blur-3xl opacity-10 rounded-full animate-pulse"></div>
-              <BookOpen className="w-20 h-20 text-[var(--primary)] opacity-20 relative z-10" />
+          <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 max-w-2xl mx-auto space-y-12">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-[var(--primary)] blur-3xl opacity-20 rounded-full animate-pulse"></div>
+                <BookOpen className="w-16 h-16 text-[var(--primary)] relative z-10" />
+              </div>
+              <h2 className="text-2xl font-black tracking-tight text-[var(--foreground)]">Welcome to Campus Intelligence</h2>
+              <p className="text-sm leading-relaxed font-bold tracking-tight opacity-50 px-4">
+                Ask me about attendance, academic policies, or department structures. 
+                Use the cards below for quick access.
+              </p>
             </div>
-            <p className="text-center max-w-sm text-sm leading-relaxed font-bold tracking-tight opacity-70">
-              [SYSTEM INTERFACE ONLINE] Automated Institutional Knowledge Access. Enter query to retrieve data regarding: **attendance**, **syllabus**, or **university policies**.
-            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+              {RECOMMENDATIONS.map((rec, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    handleSend(undefined, rec.query);
+                  }}
+                  className="flex items-center p-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl text-left hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--primary)]/5 transition-all group relative overflow-hidden"
+                >
+                  <div className={`p-3 rounded-xl ${rec.bg} ${rec.color} mr-4 group-hover:scale-110 transition-transform`}>
+                    <rec.icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-[var(--foreground)] mb-0.5">{rec.title}</p>
+                    <p className="text-[10px] uppercase font-black tracking-widest text-[var(--foreground)] opacity-30 truncate">Tap to inquire</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[var(--foreground)] opacity-0 group-hover:opacity-40 transition-opacity" />
+                  
+                  {/* Subtle hover background decoration */}
+                  <div className={`absolute -right-4 -bottom-4 w-20 h-20 opacity-5 rounded-full ${rec.bg} group-hover:scale-150 transition-transform`}></div>
+                </button>
+              ))}
+            </div>
+            
+            <div className="pt-8 flex items-center justify-center text-[10px] space-x-6 uppercase font-black tracking-[0.2em] opacity-30">
+               <span>Attendance Audit</span>
+               <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
+               <span>Policy Knowledge</span>
+               <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
+               <span>Campus Maps</span>
+            </div>
           </div>
         )}
         
