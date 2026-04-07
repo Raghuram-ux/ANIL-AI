@@ -138,7 +138,7 @@ export default function AdminDashboard() {
               onChange={(e) => {
                 const val = e.target.value;
                 setSelectedVoiceName(val);
-                if (val === 'Brian' || val === 'Brittney') {
+                if (val === 'Brian' || val === 'Bella (Cute)') {
                   setSelectedVoiceLang('en-US');
                 } else {
                   const voice = voices.find(v => v.name === val);
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
               <option value="Disabled">-- Turn Off Voice --</option>
               <option value="">-- System Default --</option>
               <option value="Brian">Brian (StreamElements)</option>
-              <option value="Brittney">Brittney (ElevenLabs)</option>
+              <option value="Bella (Cute)">Bella (Cute - ElevenLabs)</option>
               {voices.map((voice, idx) => (
                 <option key={idx} value={voice.name}>
                   {voice.name} ({voice.lang})

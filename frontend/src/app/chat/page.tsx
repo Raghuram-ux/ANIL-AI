@@ -64,8 +64,8 @@ export default function Chat() {
     // Filter out emojis from the spoken text so they aren't "read" aloud
     const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
     
-    // SPECIAL CASE: EXTERNAL VOICES (Brian, Brittney)
-    if (globalVoiceName === 'Brian' || globalVoiceName === 'Brittney') {
+    // SPECIAL CASE: EXTERNAL VOICES (Brian, Bella (Cute))
+    if (globalVoiceName === 'Brian' || globalVoiceName === 'Bella (Cute)') {
       try {
         setVoiceState('speaking');
         let fallbackTriggered = false;

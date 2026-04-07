@@ -75,13 +75,22 @@ def text_to_speech(text: str = Query(...)):
     if not api_key:
         raise HTTPException(status_code=500, detail="ElevenLabs API key not configured")
 
-    url = "https://api.elevenlabs.io/v1/text-to-speech/kPzsL2i3teMYv0FxEYQ6"
+    url = "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL"
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
         "xi-api-key": api_key
     }
-    data = {"text": text, "model_id": "eleven_monolingual_v1"}
+    data = {
+        "text": text, 
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "style": 0.0,
+            "use_speaker_boost": True
+        }
+    }
 
     try:
         response = requests.post(url, json=data, headers=headers, stream=True)
