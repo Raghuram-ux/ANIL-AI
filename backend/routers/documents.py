@@ -17,7 +17,7 @@ async def upload_document(
     file: UploadFile = File(...),
     audience: str = Form("all"),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_admin_user)
+    current_user: models.User = Depends(auth.get_staff_user)
 ):
     valid_extensions = (".pdf", ".txt", ".md")
     if not file.filename.lower().endswith(valid_extensions):
@@ -45,7 +45,7 @@ async def upload_document(
 @router.get("", response_model=list[schemas.DocumentResponse])
 def list_documents(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_admin_user)
+    current_user: models.User = Depends(auth.get_staff_user)
 ):
     documents = db.query(models.Document).all()
     return documents
@@ -54,7 +54,7 @@ def list_documents(
 def delete_document(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_admin_user)
+    current_user: models.User = Depends(auth.get_staff_user)
 ):
     document = db.query(models.Document).filter(models.Document.id == document_id).first()
     if not document:

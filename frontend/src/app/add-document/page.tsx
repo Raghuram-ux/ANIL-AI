@@ -14,7 +14,7 @@ export default function AddDocument() {
 
   useEffect(() => {
     const role = localStorage.getItem('role');
-    if (role !== 'admin') {
+    if (role !== 'admin' && role !== 'faculty') {
       router.push('/');
     }
   }, [router]);
