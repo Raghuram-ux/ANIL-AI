@@ -416,7 +416,7 @@ export default function Chat() {
               className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--foreground)] hover:bg-[var(--border)] transition-all shrink-0 shadow-sm"
               title="Enter Voice Mode"
             >
-              <Headphones className="w-4 h-4 md:w-5 md:h-5" />
+              <Mic className="w-4 h-4 md:w-5 md:h-5" />
             </button>
             <button 
               type="submit" 
