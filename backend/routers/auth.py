@@ -22,10 +22,15 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     
     try:
         hashed_password = auth.get_password_hash(user.password)
+        # Use provided role if it's 'student' or 'faculty', otherwise default to 'student'
+        assigned_role = 'student'
+        if user.role and user.role.lower() == 'faculty':
+            assigned_role = 'faculty'
+            
         db_user = models.User(
             username=user.username,
             hashed_password=hashed_password,
-            role="student"  # Always force student role
+            role=assigned_role
         )
         db.add(db_user)
         db.commit()
