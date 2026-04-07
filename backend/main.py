@@ -11,6 +11,14 @@ with database.engine.connect() as conn:
     conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     conn.commit()
 
+# Ensure audience column exists
+with database.engine.connect() as conn:
+    try:
+        conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS audience VARCHAR DEFAULT 'all';"))
+        conn.commit()
+    except Exception as e:
+        print(f"Migration warning: {e}")
+
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)
 
