@@ -114,13 +114,20 @@ export default function Chat() {
     
     let selectedVoice = null;
 
-    if (globalVoiceName && globalVoiceName !== 'Brian') {
+    if (globalVoiceName) {
       selectedVoice = voices.find(v => v.name === globalVoiceName);
     }
+    
+    const isMale = (v: SpeechSynthesisVoice) => {
+      const n = v.name.toLowerCase();
+      return n.includes('david') || n.includes('mark') || n.includes('george') || 
+             n.includes('ravi') || n.includes('google us english') || n.includes('male');
+    };
+
     if (!selectedVoice && globalVoiceLang) {
       // Prefer female voices for the specified language
       selectedVoice = voices.find(v => v.lang.startsWith(globalVoiceLang) && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('samantha'))) ||
-                      voices.find(v => v.lang.startsWith(globalVoiceLang));
+                      voices.find(v => v.lang.startsWith(globalVoiceLang) && !isMale(v));
     }
     if (!selectedVoice) {
        // Fallback logic preferring female voices
@@ -128,13 +135,13 @@ export default function Chat() {
        if (hasTamilScript) {
          utterance.lang = 'ta-IN';
          selectedVoice = voices.find(v => v.lang.startsWith('ta') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) || 
-                         voices.find(v => v.lang.startsWith('ta')) || null;
+                         voices.find(v => v.lang.startsWith('ta') && !isMale(v)) || null;
        } else {
          utterance.lang = 'en-IN';
          selectedVoice = voices.find(v => v.lang === 'en-IN' && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) || 
-                         voices.find(v => v.lang === 'en-IN') ||
+                         voices.find(v => v.lang === 'en-IN' && !isMale(v)) ||
                          voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))) ||
-                         voices.find(v => v.lang.startsWith('en')) || null;
+                         voices.find(v => v.lang.startsWith('en') && !isMale(v)) || null;
        }
     }
 
