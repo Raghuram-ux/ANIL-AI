@@ -72,8 +72,8 @@ export default function AddDocument() {
     <div className="max-w-5xl mx-auto py-8 transition-all duration-300">
       <div className="mb-10 text-center md:text-left">
         <h1 className="text-3xl font-extrabold text-[var(--foreground)] flex items-center justify-center md:justify-start mb-3">
-          <div className="p-2.5 bg-[#2563eb]/10 rounded-xl mr-4">
-            <HardDrive className="w-8 h-8 text-blue-600" />
+          <div className="p-2.5 bg-[#1e62ff]/10 rounded-xl mr-4">
+            <HardDrive className="w-8 h-8 text-[#1e62ff]" />
           </div>
           Knowledge Ingestion
         </h1>
