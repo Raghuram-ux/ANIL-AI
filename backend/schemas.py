@@ -29,6 +29,7 @@ class DocumentResponse(BaseModel):
     uploaded_at: datetime
     uploaded_by: Optional[UUID] = None
     audience: Optional[str] = "all"
+    file_url: Optional[str] = None
 
     class Config:
         from_attributes = True

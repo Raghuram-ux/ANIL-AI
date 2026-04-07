@@ -11,6 +11,8 @@ router = APIRouter(
     tags=["Documents"]
 )
 
+UPLOAD_DIR = "uploads"
+
 @router.post("", response_model=schemas.DocumentResponse)
 async def upload_document(
     background_tasks: BackgroundTasks,
@@ -19,26 +21,36 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_staff_user)
 ):
-    valid_extensions = (".pdf", ".txt", ".md")
-    if not file.filename.lower().endswith(valid_extensions):
+    valid_text_exts = (".pdf", ".txt", ".md")
+    valid_image_exts = (".png", ".jpg", ".jpeg", ".webp")
+    filename = file.filename.lower()
+    
+    if not (filename.endswith(valid_text_exts) or filename.endswith(valid_image_exts)):
         raise HTTPException(
             status_code=400, 
-            detail=f"Unsupported file type. Supported types: {', '.join(valid_extensions)}"
+            detail=f"Unsupported file type. Supported types: {', '.join(valid_text_exts + valid_image_exts)}"
         )
     
+    # Save the physical file
+    file_id = f"{uuid.uuid4()}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, file_id)
     file_content = await file.read()
+    with open(file_path, "wb") as buffer:
+        buffer.write(file_content)
     
     db_document = models.Document(
         filename=file.filename,
         uploaded_by=current_user.id,
-        audience=audience
+        audience=audience,
+        file_id=file_id
     )
     db.add(db_document)
     db.commit()
     db.refresh(db_document)
     
-    # Process file asynchronously
-    background_tasks.add_task(process_and_store_document, db, db_document.id, file_content, file.filename)
+    # Process text files for AI knowledge (Skip images for text extraction)
+    if any(filename.endswith(ext) for ext in valid_text_exts):
+        background_tasks.add_task(process_and_store_document, db, db_document.id, file_content, file.filename)
     
     return db_document
 
@@ -48,6 +60,11 @@ def list_documents(
     current_user: models.User = Depends(auth.get_staff_user)
 ):
     documents = db.query(models.Document).all()
+    # Populate file_url for each document
+    for doc in documents:
+        if doc.file_id:
+            # We'll use absolute URLs in production if possible, but relative for now
+            doc.file_url = f"/api/uploads/{doc.file_id}"
     return documents
 
 @router.delete("/{document_id}")

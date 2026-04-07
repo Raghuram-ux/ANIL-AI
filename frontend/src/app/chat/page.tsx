@@ -317,7 +317,53 @@ export default function Chat() {
                 </div>
               )}
               
-              <div className="whitespace-pre-wrap leading-relaxed transition-colors text-sm md:text-base">{msg.content}</div>
+              <div className="whitespace-pre-wrap leading-relaxed transition-colors text-sm md:text-base">
+                {msg.content.split(/(!\[.*?\]\(.*?\)|\[.*?\]\(.*?\))/g).map((chunk, idx) => {
+                  if (chunk.startsWith('![')) {
+                    // Match image: ![Alt](Path)
+                    const match = chunk.match(/!\[(.*?)\]\((.*?)\)/);
+                    if (match) {
+                      const [, alt, path] = match;
+                      const fullUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${path}`;
+                      return (
+                        <div key={idx} className="my-4 group relative">
+                          <img 
+                            src={fullUrl} 
+                            alt={alt} 
+                            className="max-w-full rounded-2xl shadow-xl shadow-blue-500/10 border border-[var(--border)] hover:scale-[1.02] transition-transform duration-500" 
+                          />
+                          <div className="mt-2 text-[10px] uppercase font-bold text-[var(--foreground)] opacity-40 text-center tracking-widest">{alt || 'Campus Visual'}</div>
+                        </div>
+                      );
+                    }
+                  } else if (chunk.startsWith('[')) {
+                    // Match link: [Text](Path)
+                    const match = chunk.match(/\[(.*?)\]\((.*?)\)/);
+                    if (match) {
+                      const [, text, path] = match;
+                      const isPdf = path.toLowerCase().endsWith('.pdf');
+                      const fullUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${path}`;
+                      return (
+                        <a 
+                          key={idx} 
+                          href={fullUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all my-1 ${
+                            isPdf 
+                              ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white' 
+                              : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)] hover:text-white shadow-sm'
+                          }`}
+                        >
+                          {isPdf && <BookOpen className="w-3.5 h-3.5 mr-2" />}
+                          {text}
+                        </a>
+                      );
+                    }
+                  }
+                  return <span key={idx}>{chunk}</span>;
+                })}
+              </div>
               
               {msg.role === 'assistant' && userRole === 'admin' && msg.sources && msg.sources.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-[var(--border)] opacity-80">

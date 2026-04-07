@@ -52,8 +52,16 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
     if not results:
         return {"answer": "I dug through everything in the knowledge base and came up with nothing. Either this topic doesn't exist in the archives, or whoever uploaded the docs forgot to include it. Your best bet: ambush a department head or storm the main office — they tend to know things.", "sources": []}
 
-    # Format context with source headers for better reasoning
-    context = "\n\n".join([f"[DOCUMENT: {r.document.filename}]\n{r.content}" for r in results if r.document])
+    # Format context with source headers and URLs for visual content support
+    context_chunks = []
+    for r in results:
+        if not r.document: continue
+        doc_info = f"[DOCUMENT: {r.document.filename}]"
+        if r.document.file_id:
+            doc_info += f" (URL: /api/uploads/{r.document.file_id})"
+        context_chunks.append(f"{doc_info}\n{r.content}")
+    
+    context = "\n\n".join(context_chunks)
     sources = sorted(list(set([r.document.filename for r in results if r.document])))
 
     # Conversational Campus Companion system prompt
@@ -71,7 +79,10 @@ Your goal is to assist students and staff in a friendly, approachable, and engag
 8. **Language rule**: 
    - Default: Friendly and professional English.
    - If the user writes in Tamil or Tanglish, seamlessly switch to a warm and conversational Tanglish style.
-9. **No Emojis**: Do not use any emojis in your response.
+9. **Visual Content**: If a document in the knowledge base has a associated URL (like /api/uploads/...), and it is extremely relevant (like a campus map, department chart, official form, or picture), you MUST display it in your response. 
+   - For IMAGES (png, jpg, jpeg, webp): Use markdown syntax: ![Description]([URL])
+   - For DOCUMENTS (pdf): Use markdown syntax: [View official {r.document.filename} PDF]([URL])
+10. **No Emojis**: Do not use any emojis in your response.
 
 --- CAMPUS KNOWLEDGE BASE ---
 {context}
