@@ -12,7 +12,7 @@ class User(Base):
     id = Column(psqlUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, nullable=False, default="student") # 'admin' or 'student'
+    role = Column(String, nullable=False, default="student") # 'admin', 'faculty', or 'student'
 
 class Document(Base):
     __tablename__ = "documents"

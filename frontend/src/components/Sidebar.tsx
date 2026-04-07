@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, MessageSquare, BookOpen, Sparkles, LogOut, User, Squirrel, Sun, Moon, X } from 'lucide-react';
+import { Home, MessageSquare, BookOpen, Sparkles, LogOut, User, Squirrel, Sun, Moon, X, GraduationCap, Users, BarChart, Settings } from 'lucide-react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -40,15 +40,28 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   };
 
   const navItems = [
-    { name: 'Home', href: '/', icon: Home, adminOnly: false },
-    { name: 'Chat with Laxx', href: '/chat', icon: MessageSquare, adminOnly: false },
-    { name: 'Document Library', href: '/admin', icon: BookOpen, adminOnly: true },
-    { name: 'Add Document', href: '/add-document', icon: Sparkles, adminOnly: true },
+    { name: 'Home Hub', href: '/', icon: Home, roles: ['guest', 'student', 'faculty', 'admin'] },
+    { name: 'AI Chatbot', href: '/chat', icon: MessageSquare, roles: ['student', 'faculty', 'admin'] },
+    { name: 'Faculty Hub', href: '/faculty', icon: GraduationCap, roles: ['faculty', 'admin'] },
+    { name: 'Archive Vault', href: '/admin', icon: BookOpen, roles: ['admin'] },
+    { name: 'Inject Intelligence', href: '/add-document', icon: Sparkles, roles: ['faculty', 'admin'] },
+  ];
+
+  const staffItems = [
+    { name: 'Student Pulse', href: '/faculty/analytics', icon: BarChart, roles: ['faculty', 'admin'] },
+    { name: 'Course Materials', href: '/faculty/materials', icon: Users, roles: ['faculty', 'admin'] },
+    { name: 'Staff Settings', href: '/faculty/settings', icon: Settings, roles: ['faculty', 'admin'] },
   ];
 
   const handleLogout = () => {
     localStorage.clear();
     router.push('/login');
+  };
+
+  const isVisible = (roles: string[]) => {
+    if (roles.includes('any')) return true;
+    if (!role) return false;
+    return roles.includes(role);
   };
 
   return (
@@ -67,7 +80,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         flex flex-col h-screen shrink-0 transition-all duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-6 pb-2">
+        <div className="p-6 pb-2 overflow-y-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
               <Squirrel className="w-8 h-8 text-[var(--primary)]" />
@@ -86,7 +99,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
           
           <nav className="space-y-1.5">
-            {navItems.filter(item => !item.adminOnly || role === 'admin').map((item) => {
+            <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-3 px-4">Main Menu</h3>
+            {navItems.filter(item => isVisible(item.roles)).map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -104,11 +118,35 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 </Link>
               );
             })}
+
+            {(role === 'admin' || role === 'faculty') && (
+              <div className="pt-6">
+                <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-3 px-4">Staff Portal</h3>
+                {staffItems.filter(item => isVisible(item.roles)).map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => onClose && onClose()}
+                      className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group ${
+                        isActive 
+                          ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' 
+                          : 'text-[var(--foreground)] opacity-60 hover:opacity-100 hover:bg-[var(--background)]'
+                      }`}
+                    >
+                      <item.icon className={`w-5 h-5 mr-3 transition-transform group-hover:scale-110 ${isActive ? 'text-amber-400' : 'text-[var(--foreground)] opacity-40'}`} />
+                      <span className="font-bold text-xs uppercase tracking-wider">{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </nav>
         </div>
 
         <div className="mt-auto p-6 pt-2">
-          <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-4 px-2">System Config</h3>
+          <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-2 px-2">Preferences</h3>
           <div className="space-y-1 mb-6">
             <button 
               onClick={toggleDarkMode}
@@ -128,11 +166,11 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             </button>
           </div>
 
-          <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-4 px-2">Active Session</h3>
+          <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-2 px-2">Active User</h3>
           <div className="space-y-1">
             <div className="flex items-center px-4 py-3 text-[var(--foreground)] text-xs font-bold bg-[var(--background)] rounded-xl border border-[var(--border)]">
               <User className="w-5 h-5 mr-3 text-[var(--primary)]" />
-              <span className="capitalize tracking-wider">{role === 'guest' ? 'Guest Access' : role}</span>
+              <span className="capitalize tracking-wider">{role === 'guest' ? 'Visitor' : role}</span>
             </div>
             <button 
               onClick={handleLogout}

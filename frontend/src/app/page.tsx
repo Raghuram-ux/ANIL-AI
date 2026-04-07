@@ -39,20 +39,25 @@ export default function Home() {
       {/* Features Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {[
-          { icon: BookOpen, color: 'blue', title: 'Syllabus Archive', desc: 'Direct access to Semester 4 and across-dept academic documents.' },
-          { icon: ShieldCheck, color: 'emerald', title: 'Campus Policies', desc: 'Detailed insights on attendance, exam rules, and code of conduct.' },
-          { icon: GraduationCap, color: 'amber', title: 'Admin Registry', desc: 'Secured management systems for college staff and administration.' }
+          { icon: BookOpen, color: 'blue', title: 'Syllabus Archive', desc: 'Direct access to Semester 4 and across-dept academic documents.', href: '/admin' },
+          { icon: ShieldCheck, color: 'emerald', title: 'Campus Policies', desc: 'Detailed insights on attendance, exam rules, and code of conduct.', href: '/chat' },
+          { icon: GraduationCap, color: 'amber', title: 'Faculty Portal', desc: 'Secure analytical tools for staff to manage curriculum datasets.', href: '/faculty' }
         ].map((feature, idx) => (
-          <div key={idx} className="group p-8 rounded-3xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]/50 hover:shadow-2xl transition-all duration-300 glass-card">
-            <div className={`w-14 h-14 rounded-2xl bg-${feature.color}-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-              <feature.icon className={`w-7 h-7 text-${feature.color}-500`} />
+          <Link 
+            href={feature.href}
+            key={idx} 
+            className="group p-8 rounded-3xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--primary)]/50 hover:shadow-2xl transition-all duration-300 glass-card block"
+          >
+            <div className={`w-14 h-14 rounded-2xl bg-opacity-10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${feature.color === 'blue' ? 'bg-blue-500' : feature.color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'}`}>
+              <feature.icon className={`w-7 h-7 ${feature.color === 'blue' ? 'text-blue-500' : feature.color === 'emerald' ? 'text-emerald-500' : 'text-amber-500'}`} />
             </div>
             <h3 className="text-xl font-bold text-[var(--foreground)] mb-3 tracking-tight">{feature.title}</h3>
             <p className="text-[var(--foreground)] opacity-60 text-sm leading-relaxed mb-6">{feature.desc}</p>
             <div className="h-1 w-0 bg-[var(--primary)] group-hover:w-16 transition-all duration-500 rounded-full"></div>
-          </div>
+          </Link>
         ))}
       </div>
+
 
       {/* Stats/Badge Section */}
       <div className="mt-20 py-10 border-t border-[var(--border)] flex flex-col md:flex-row items-center justify-between gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">

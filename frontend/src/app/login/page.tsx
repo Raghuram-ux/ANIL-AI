@@ -29,6 +29,7 @@ export default function Login() {
       });
       
       localStorage.setItem('access_token', res.data.access_token);
+      localStorage.setItem('username', username);
       
       const tokenParts = res.data.access_token.split('.');
       const payload = JSON.parse(atob(tokenParts[1]));
@@ -36,6 +37,8 @@ export default function Login() {
       
       if (payload.role === 'admin') {
         router.push('/admin');
+      } else if (payload.role === 'faculty') {
+        router.push('/faculty');
       } else {
         router.push('/chat');
       }
@@ -75,7 +78,19 @@ export default function Login() {
           />
         </div>
 
-
+        {isRegistering && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Account Role</label>
+            <select 
+              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="student">Student</option>
+              <option value="faculty">Faculty / Staff</option>
+            </select>
+          </div>
+        )}
 
         <button 
           type="submit" 
