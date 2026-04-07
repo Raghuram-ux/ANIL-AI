@@ -103,7 +103,7 @@ export default function AdminDashboard() {
                       {doc.filename}
                     </p>
                     <p className="text-[10px] uppercase tracking-widest text-[var(--foreground)] opacity-50 font-bold mt-1">
-                      Inserted {new Date(doc.uploaded_at).toLocaleDateString()}
+                      Inserted {new Date(doc.uploaded_at).toLocaleDateString()} • Target: <span className="text-[var(--primary)]">{doc.audience === 'all' ? 'All Users' : doc.audience === 'faculty' ? 'Faculty/Staff Only' : 'Student Only'}</span>
                     </p>
                   </div>
                 </div>

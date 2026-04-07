@@ -21,6 +21,7 @@ class Document(Base):
     filename = Column(String, nullable=False)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
     uploaded_by = Column(psqlUUID(as_uuid=True), ForeignKey("users.id"))
+    audience = Column(String, nullable=False, default="all") # 'all', 'student', 'faculty'
     
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 

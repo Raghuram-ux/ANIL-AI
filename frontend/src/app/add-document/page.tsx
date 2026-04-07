@@ -9,6 +9,7 @@ export default function AddDocument() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [category, setCategory] = useState('');
+  const [audience, setAudience] = useState('all');
   const router = useRouter();
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function AddDocument() {
     const formData = new FormData();
     formData.append('file', file);
     if (category) formData.append('category', category);
+    formData.append('audience', audience);
     
     try {
       await api.post('/admin/documents', formData, {
@@ -52,7 +54,8 @@ export default function AddDocument() {
       await api.post('/admin/documents/text', {
         title: textTitle,
         content: textContent,
-        category: category || 'general'
+        category: category || 'general',
+        audience: audience
       });
       setTextTitle('');
       setTextContent('');
@@ -147,9 +150,19 @@ export default function AddDocument() {
                     <option value="general">Campus Life</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-center md:justify-end text-xs font-bold text-[var(--foreground)] opacity-60 p-3 bg-[var(--background)] rounded-xl border border-[var(--border)]">
-                  <Trees className="w-5 h-5 text-green-600 mr-2" />
-                  Visibility: Entire University
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground)] opacity-60">
+                    Target Audience
+                  </label>
+                  <select 
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-[var(--foreground)] transition-all"
+                  >
+                    <option value="all">Entire University (All)</option>
+                    <option value="student">Student Only</option>
+                    <option value="faculty">Faculty & Staff Only</option>
+                  </select>
                 </div>
               </div>
 
@@ -210,6 +223,20 @@ export default function AddDocument() {
                     <option value="syllabus">Academic Syllabus</option>
                     <option value="policy">University Policy</option>
                     <option value="general">Campus Life</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-widest text-[var(--foreground)] opacity-60">
+                    Target Audience
+                  </label>
+                  <select 
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-[var(--foreground)] transition-all"
+                  >
+                    <option value="all">Entire University (All)</option>
+                    <option value="student">Student Only</option>
+                    <option value="faculty">Faculty & Staff Only</option>
                   </select>
                 </div>
               </div>

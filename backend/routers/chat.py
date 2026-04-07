@@ -19,7 +19,7 @@ async def chat_with_bot(
     current_user: models.User = Depends(auth.get_current_user)
 ):
     try:
-        response_data = await generate_answer(db, request.query)
+        response_data = await generate_answer(db, request.query, current_user.role)
         
         # Save chat log
         chat_msg = models.ChatMessage(

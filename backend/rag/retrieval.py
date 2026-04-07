@@ -3,7 +3,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 import models
 import os
 
-async def generate_answer(db: Session, query: str) -> dict:
+async def generate_answer(db: Session, query: str, user_role: str = "student") -> dict:
     mock_mode = os.getenv("MOCK_LLM", "false").lower() == "true"
     api_key = os.getenv("OPENAI_API_KEY")
 
@@ -17,7 +17,13 @@ async def generate_answer(db: Session, query: str) -> dict:
     k = 10
     
     if mock_mode:
-        results = db.query(models.DocumentChunk).limit(k).all()
+        query_builder = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+        if user_role == "student":
+            query_builder = query_builder.filter(models.Document.audience.in_(["all", "student"]))
+        elif user_role == "faculty":
+            query_builder = query_builder.filter(models.Document.audience.in_(["all", "faculty"]))
+        
+        results = query_builder.limit(k).all()
         if not results:
             return {"answer": "Ah. My brain is currently an empty void — which is both philosophically interesting and practically useless. Someone needs to upload university docs via the admin portal before I can be of any real help. Don't blame me.", "sources": []}
             
@@ -33,7 +39,13 @@ async def generate_answer(db: Session, query: str) -> dict:
     except Exception as e:
         return {"answer": f"University Neural Interface Error (Embedding): {str(e)}", "sources": []}
 
-    results = db.query(models.DocumentChunk).order_by(
+    query_builder = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+    if user_role == "student":
+        query_builder = query_builder.filter(models.Document.audience.in_(["all", "student"]))
+    elif user_role == "faculty":
+        query_builder = query_builder.filter(models.Document.audience.in_(["all", "faculty"]))
+
+    results = query_builder.order_by(
         models.DocumentChunk.embedding.l2_distance(query_embedding)
     ).limit(k).all()
 

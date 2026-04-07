@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Form
 from sqlalchemy.orm import Session
 import os
 import uuid
@@ -15,6 +15,7 @@ router = APIRouter(
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    audience: str = Form("all"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_admin_user)
 ):
@@ -29,7 +30,8 @@ async def upload_document(
     
     db_document = models.Document(
         filename=file.filename,
-        uploaded_by=current_user.id
+        uploaded_by=current_user.id,
+        audience=audience
     )
     db.add(db_document)
     db.commit()
@@ -71,7 +73,8 @@ async def upload_text(
 ):
     db_document = models.Document(
         filename=data.title,
-        uploaded_by=current_user.id
+        uploaded_by=current_user.id,
+        audience=data.audience
     )
     db.add(db_document)
     db.commit()
