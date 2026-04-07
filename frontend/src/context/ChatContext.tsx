@@ -16,9 +16,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Laxx Online. Ready for your queries regarding attendance, syllabus, and university policies.' }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load from localStorage on mount
@@ -45,7 +43,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [messages, isInitialized]);
 
   const clearChat = () => {
-    setMessages([{ role: 'assistant', content: 'Laxx Online. Ready for your queries regarding attendance, syllabus, and university policies.' }]);
+    setMessages([]);
     localStorage.removeItem('chat_messages');
   };
 
