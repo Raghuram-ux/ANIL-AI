@@ -13,12 +13,15 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   
   useEffect(() => {
     // This runs on client side only
     const storedRole = localStorage.getItem('role') || 'guest';
+    const storedUsername = localStorage.getItem('username');
     setRole(storedRole);
+    setUsername(storedUsername);
 
     const storedTheme = localStorage.getItem('theme');
     if (storedTheme === 'dark') {
@@ -166,12 +169,22 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             </button>
           </div>
 
-          <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-2 px-2">Active User</h3>
+          <h3 className="text-[10px] font-bold text-[var(--foreground)] opacity-30 uppercase tracking-[0.2em] mb-2 px-2">Active Identification</h3>
           <div className="space-y-1">
-            <div className="flex items-center px-4 py-3 text-[var(--foreground)] text-xs font-bold bg-[var(--background)] rounded-xl border border-[var(--border)]">
-              <User className="w-5 h-5 mr-3 text-[var(--primary)]" />
-              <span className="capitalize tracking-wider">{role === 'guest' ? 'Visitor' : role}</span>
+            <div className="flex flex-col px-4 py-3 bg-[var(--background)] rounded-xl border border-[var(--border)]">
+              <div className="flex items-center">
+                <User className="w-5 h-5 mr-3 text-[var(--primary)]" />
+                <span className="font-black text-sm tracking-tight text-[var(--foreground)]">
+                  {username || (role === 'guest' ? 'Visitor' : role)}
+                </span>
+              </div>
+              {username && (
+                <div className="mt-2 text-[8px] uppercase font-black tracking-widest text-[var(--primary)] opacity-60 ml-8">
+                  {role} Account
+                </div>
+              )}
             </div>
+
             <button 
               onClick={handleLogout}
               className="w-full flex items-center px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all text-xs font-bold uppercase tracking-widest mt-2"
