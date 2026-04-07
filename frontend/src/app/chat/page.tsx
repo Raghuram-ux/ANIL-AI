@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import api from '@/lib/api';
-import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones, MapPin, Clock, Calendar, CreditCard, ChevronRight } from 'lucide-react';
+import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones, MapPin, Clock, Calendar, CreditCard, ChevronRight, ShieldCheck } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 
 const ELEVENLABS_VOICES: Record<string, string> = {
@@ -12,11 +12,18 @@ const ELEVENLABS_VOICES: Record<string, string> = {
   "Charlotte (Soft)": "xb0MDR63uEAbR37vP7zX"
 };
 
-const RECOMMENDATIONS = [
+const STUDENT_RECOMMENDATIONS = [
   { title: "Campus Map", query: "Show me the campus map", icon: MapPin, color: "text-blue-500", bg: "bg-blue-500/10" },
   { title: "Attendance", query: "What are the attendance requirements?", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
   { title: "Holiday List", query: "Can I see the academic holiday list?", icon: Calendar, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   { title: "Fee Status", query: "Tell me about the university fee structure", icon: CreditCard, color: "text-purple-500", bg: "bg-purple-500/10" }
+];
+
+const TEACHER_RECOMMENDATIONS = [
+  { title: "Staff Leave", query: "What are the staff leave and vacation rules?", icon: User, color: "text-red-500", bg: "bg-red-500/10" },
+  { title: "Research Grant", query: "Tell me about available research grants and funding.", icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { title: "Exam Duty", query: "Show me the exam invigilation schedule.", icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { title: "University HR", query: "Provide details on university staff policies.", icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10" }
 ];
 
 export default function Chat() {
@@ -321,7 +328,7 @@ export default function Chat() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-              {RECOMMENDATIONS.map((rec, i) => (
+              {(userRole === 'faculty' ? TEACHER_RECOMMENDATIONS : STUDENT_RECOMMENDATIONS).map((rec, i) => (
                 <button
                   key={i}
                   onClick={() => {
@@ -345,11 +352,23 @@ export default function Chat() {
             </div>
             
             <div className="pt-8 flex items-center justify-center text-[10px] space-x-6 uppercase font-black tracking-[0.2em] opacity-30">
-               <span>Attendance Audit</span>
-               <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
-               <span>Policy Knowledge</span>
-               <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
-               <span>Campus Maps</span>
+               {userRole === 'faculty' ? (
+                 <>
+                   <span>Staff Benefits</span>
+                   <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
+                   <span>Research Hub</span>
+                   <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
+                   <span>HR Policies</span>
+                 </>
+               ) : (
+                 <>
+                   <span>Attendance Audit</span>
+                   <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
+                   <span>Policy Knowledge</span>
+                   <div className="w-1 h-1 bg-[var(--foreground)] rounded-full"></div>
+                   <span>Campus Maps</span>
+                 </>
+               )}
             </div>
           </div>
         )}
