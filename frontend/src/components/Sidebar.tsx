@@ -47,7 +47,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     { name: 'AI Chatbot', href: '/chat', icon: MessageSquare, roles: ['student', 'faculty', 'admin'] },
     { name: 'Faculty Hub', href: '/faculty', icon: GraduationCap, roles: ['faculty', 'admin'] },
     { name: 'Archive Vault', href: '/admin', icon: BookOpen, roles: ['admin'] },
-    { name: 'Inject Intelligence', href: '/add-document', icon: Sparkles, roles: ['faculty', 'admin'] },
+    { name: 'Inject Intelligence', href: '/add-document', icon: Sparkles, roles: ['admin'] },
   ];
 
   const staffItems = [
