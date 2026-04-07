@@ -256,7 +256,18 @@ export default function Chat() {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              onClick={() => {
+                const newState = !voiceEnabled;
+                setVoiceEnabled(newState);
+                if (!newState) {
+                  window.speechSynthesis.cancel();
+                  if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current = null;
+                  }
+                  setVoiceState('idle');
+                }
+              }}
               className={`p-2 rounded-lg transition-all ${voiceEnabled ? 'bg-amber-500/10 text-amber-500' : 'text-[var(--foreground)] opacity-30 hover:opacity-100'}`}
               title={voiceEnabled ? "Turn off voice" : "Turn on voice"}
             >
