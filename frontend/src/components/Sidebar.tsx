@@ -179,8 +179,12 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 </span>
               </div>
               {username && (
-                <div className="mt-2 text-[8px] uppercase font-black tracking-widest text-[var(--primary)] opacity-60 ml-8">
-                  {role} Account
+                <div className={`mt-2 inline-flex self-start ml-8 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-[0.15em] ${
+                  role === 'admin' ? 'bg-indigo-500/10 text-indigo-500' : 
+                  role === 'faculty' ? 'bg-amber-500/10 text-amber-500' : 
+                  'bg-[var(--primary)]/10 text-[var(--primary)]'
+                }`}>
+                  {role === 'admin' ? 'System Administrator' : role === 'faculty' ? 'Faculty Member' : (role === 'student' ? 'Student Access' : role)}
                 </div>
               )}
             </div>
