@@ -15,3 +15,4 @@ langchain-openai
 openai
 python-multipart
 requests
+supabase

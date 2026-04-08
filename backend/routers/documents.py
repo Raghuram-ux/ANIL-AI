@@ -6,6 +6,18 @@ import models, schemas, auth
 from database import get_db
 from rag.ingestion import process_and_store_document
 
+# Supabase Storage Configuration
+from supabase import create_client, Client
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase_client: Client = None
+
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print(f"Supabase Storage initialization failed: {e}")
+
 router = APIRouter(
     prefix="/admin/documents",
     tags=["Documents"]
@@ -32,11 +44,22 @@ async def upload_document(
             detail=f"Unsupported file type. Supported types: {', '.join(valid_text_exts + valid_image_exts)}"
         )
     
-    # Save the physical file
+    # Save the file (Try Supabase for permanent storage, fallback to local)
     safe_filename = file.filename.replace(" ", "_")
     file_id = f"{uuid.uuid4()}_{safe_filename}"
-    file_path = os.path.join(UPLOAD_DIR, file_id)
     file_content = await file.read()
+    
+    storage_success = False
+    if supabase_client:
+        try:
+            # Ensure the bucket 'documents' is public in Supabase settings
+            supabase_client.storage.from_('documents').upload(file_id, file_content)
+            storage_success = True
+        except Exception as e:
+            print(f"Supabase upload failed: {e}")
+
+    # Always save a local copy as fallback/development and for local processing
+    file_path = os.path.join(UPLOAD_DIR, file_id)
     with open(file_path, "wb") as buffer:
         buffer.write(file_content)
     
@@ -66,8 +89,12 @@ def list_documents(
     # Populate file_url for each document
     for doc in documents:
         if doc.file_id:
-            # We'll use absolute URLs in production if possible, but relative for now
-            doc.file_url = f"/api/uploads/{doc.file_id}"
+            if supabase_client:
+                # Direct permanent link from Supabase
+                doc.file_url = f"{SUPABASE_URL}/storage/v1/object/public/documents/{doc.file_id}"
+            else:
+                # Transient local link from Render
+                doc.file_url = f"/api/uploads/{doc.file_id}"
     return documents
 
 @router.delete("/{document_id}")

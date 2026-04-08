@@ -53,12 +53,19 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
         return {"answer": "I dug through everything in the knowledge base and came up with nothing. Either this topic doesn't exist in the archives, or whoever uploaded the docs forgot to include it. Your best bet: ambush a department head or storm the main office — they tend to know things.", "sources": []}
 
     # Format context with source headers and URLs for visual content support
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+    use_supabase = bool(SUPABASE_URL and SUPABASE_KEY)
+    
     context_chunks = []
     for r in results:
         if not r.document: continue
         doc_info = f"[DOCUMENT: {r.document.filename}]"
         if r.document.file_id and r.document.allow_display:
-            doc_info += f" (URL: /api/uploads/{r.document.file_id})"
+            if use_supabase:
+                 doc_info += f" (URL: {SUPABASE_URL}/storage/v1/object/public/documents/{r.document.file_id})"
+            else:
+                 doc_info += f" (URL: /api/uploads/{r.document.file_id})"
         context_chunks.append(f"{doc_info}\n{r.content}")
     
     context = "\n\n".join(context_chunks)
@@ -79,12 +86,12 @@ Your goal is to assist students and staff in a friendly, approachable, and engag
 8. **Language rule**: 
    - Default: Friendly and professional English.
    - If the user writes in Tamil or Tanglish, seamlessly switch to a warm and conversational Tanglish style.
-9. **Visual Content**: You have access to images and PDF documents via associated URLs (found in the context markers like (URL: /api/uploads/...)). 
+9. **Visual Content**: You have access to images and PDF documents via associated URLs (found in the context markers like (URL: ...)). 
    - **CRITICAL**: ONLY display an image or a PDF if the user explicitly asks for it (e.g., "Show me the map", "Send me the PDF", "I want to see the image"). 
    - DO NOT automatically include visual content in every response, even if it is relevant. Wait for a specific request for visual aids.
-   - For IMAGES (png, jpg, jpeg, webp): Use markdown syntax: ![Description](URL) (e.g., ![Campus Map](/api/uploads/xyz.png))
-   - For DOCUMENTS (pdf): Use markdown syntax: [Link Text](URL) (e.g., [View Fee Structure PDF](/api/uploads/xyz.pdf))
-   - **IMPORTANT**: Only use the exact URLs provided in the context markers (starting with /api/uploads/). Do NOT guess or hallucinate URLs if they are not explicitly present in the knowledge base context for a specific document.
+   - For IMAGES (png, jpg, jpeg, webp): Use markdown syntax: ![Description](URL) (e.g., ![Campus Map](/api/uploads/xyz.png) or ![Map](https://xyz.supabase.co/storage/v1/object/public/documents/abc.png))
+   - For DOCUMENTS (pdf): Use markdown syntax: [Link Text](URL) (e.g., [View Fee Structure PDF](/api/uploads/xyz.pdf) or [PDF](https://xyz.supabase.co/storage/v1/object/public/documents/abc.pdf))
+   - **IMPORTANT**: Only use the exact URLs provided in the context markers (starting with /api/uploads/ or a full https:// supabase link). Do NOT guess or hallucinate URLs if they are not explicitly present in the knowledge base context for a specific document.
 10. **No Emojis**: Do not use any emojis in your response.
 
 --- CAMPUS KNOWLEDGE BASE ---
