@@ -30,6 +30,7 @@ class DocumentResponse(BaseModel):
     uploaded_by: Optional[UUID] = None
     audience: Optional[str] = "all"
     file_url: Optional[str] = None
+    allow_display: bool = True
 
     class Config:
         from_attributes = True
@@ -46,6 +47,7 @@ class TextKnowledgeCreate(BaseModel):
     content: str
     category: Optional[str] = "general"
     audience: str = "all"
+    allow_display: bool = True
 
 class VoiceSetting(BaseModel):
     voice_name: str

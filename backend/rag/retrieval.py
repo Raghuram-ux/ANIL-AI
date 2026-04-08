@@ -57,7 +57,7 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
     for r in results:
         if not r.document: continue
         doc_info = f"[DOCUMENT: {r.document.filename}]"
-        if r.document.file_id:
+        if r.document.file_id and r.document.allow_display:
             doc_info += f" (URL: /api/uploads/{r.document.file_id})"
         context_chunks.append(f"{doc_info}\n{r.content}")
     

@@ -32,19 +32,16 @@ def run_migrations():
             except Exception as e:
                 print(f"Migration error (audience): {e}")
         
-        if 'file_id' not in columns:
-            print("Migration: Adding 'file_id' column to documents table...")
-            try:
-                # Use a safer ALTER TABLE for Postgres
-                conn.execute(text("ALTER TABLE documents ADD COLUMN file_id VARCHAR;"))
-                conn.commit()
-            except Exception as e:
-                print(f"Migration error (file_id): {e}")
-                
-        # Optional: ensure existing nulls are filled for audience
-        if 'audience' in columns:
-            conn.execute(text("UPDATE documents SET audience = 'all' WHERE audience IS NULL;"))
-            conn.commit()
+        if 'file_id' in columns:
+            # Ensure audience exists too
+            if 'allow_display' not in columns:
+                print("Migration: Adding 'allow_display' column to documents table...")
+                try:
+                    conn.execute(text("ALTER TABLE documents ADD COLUMN allow_display BOOLEAN DEFAULT TRUE;"))
+                    conn.execute(text("UPDATE documents SET allow_display = TRUE WHERE allow_display IS NULL;"))
+                    conn.commit()
+                except Exception as e:
+                    print(f"Migration error (allow_display): {e}")
 
 run_migrations()
 

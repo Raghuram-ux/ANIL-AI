@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.dialects.postgresql import UUID as psqlUUID
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
@@ -23,6 +23,7 @@ class Document(Base):
     uploaded_by = Column(psqlUUID(as_uuid=True), ForeignKey("users.id"))
     audience = Column(String, nullable=False, default="all") # 'all', 'student', 'faculty'
     file_id = Column(String, nullable=True)
+    allow_display = Column(Boolean, nullable=False, default=True)
     
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 

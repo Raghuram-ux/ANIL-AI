@@ -10,6 +10,7 @@ export default function AddDocument() {
   const [isUploading, setIsUploading] = useState(false);
   const [category, setCategory] = useState('');
   const [audience, setAudience] = useState('all');
+  const [allowDisplay, setAllowDisplay] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function AddDocument() {
     formData.append('file', file);
     if (category) formData.append('category', category);
     formData.append('audience', audience);
+    formData.append('allow_display', allowDisplay.toString());
     
     try {
       await api.post('/admin/documents', formData, {
@@ -55,7 +57,8 @@ export default function AddDocument() {
         title: textTitle,
         content: textContent,
         category: category || 'general',
-        audience: audience
+        audience: audience,
+        allow_display: allowDisplay
       });
       setTextTitle('');
       setTextContent('');
@@ -166,6 +169,19 @@ export default function AddDocument() {
                 </div>
               </div>
 
+              <div className="flex items-center space-x-3 p-5 bg-[var(--background)] border border-[var(--border)] rounded-2xl">
+                <input 
+                  type="checkbox" 
+                  id="allowDisplayDoc"
+                  checked={allowDisplay}
+                  onChange={(e) => setAllowDisplay(e.target.checked)}
+                  className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
+                />
+                <label htmlFor="allowDisplayDoc" className="text-sm font-semibold text-[var(--foreground)] cursor-pointer">
+                  Allow chatbot to display this file link/image upon explicit user request
+                </label>
+              </div>
+
               <button 
                 type="submit" 
                 disabled={!file || isUploading}
@@ -239,6 +255,19 @@ export default function AddDocument() {
                     <option value="faculty">Faculty & Staff Only</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-5 bg-[var(--background)] border border-[var(--border)] rounded-2xl mt-6">
+                <input 
+                  type="checkbox" 
+                  id="allowDisplayPaste"
+                  checked={allowDisplay}
+                  onChange={(e) => setAllowDisplay(e.target.checked)}
+                  className="w-5 h-5 accent-[var(--primary)] cursor-pointer"
+                />
+                <label htmlFor="allowDisplayPaste" className="text-sm font-semibold text-[var(--foreground)] cursor-pointer">
+                  Allow chatbot to reference this source context (Information mapping)
+                </label>
               </div>
 
               <button 

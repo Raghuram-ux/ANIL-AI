@@ -18,6 +18,7 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     audience: str = Form("all"),
+    allow_display: bool = Form(True),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_admin_user)
 ):
@@ -43,7 +44,8 @@ async def upload_document(
         filename=file.filename,
         uploaded_by=current_user.id,
         audience=audience,
-        file_id=file_id
+        file_id=file_id,
+        allow_display=allow_display
     )
     db.add(db_document)
     db.commit()
@@ -92,7 +94,8 @@ async def upload_text(
     db_document = models.Document(
         filename=data.title,
         uploaded_by=current_user.id,
-        audience=data.audience
+        audience=data.audience,
+        allow_display=data.allow_display
     )
     db.add(db_document)
     db.commit()
