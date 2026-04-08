@@ -52,11 +52,20 @@ async def upload_document(
     storage_success = False
     if supabase_client:
         try:
-            # Ensure the bucket 'documents' is public in Supabase settings
-            supabase_client.storage.from_('documents').upload(file_id, file_content)
+            # Explicitly set content type to help Supabase
+            content_type = file.content_type or "application/octet-stream"
+            supabase_client.storage.from_('documents').upload(
+                file_id, 
+                file_content,
+                file_options={"cacheControl": "3600", "upsert": "false", "contentType": content_type}
+            )
             storage_success = True
+            print(f"Supabase upload success: {file_id}")
         except Exception as e:
-            print(f"Supabase upload failed: {e}")
+            # We'll raise an error here so the user sees it in the frontend if the cloud upload fails
+            print(f"Supabase upload failed: {str(e)}")
+            # Fail the request so the admin gets immediate feedback
+            raise HTTPException(status_code=500, detail=f"Cloud storage upload failed: {str(e)}")
 
     # Always save a local copy as fallback/development and for local processing
     file_path = os.path.join(UPLOAD_DIR, file_id)
@@ -138,3 +147,11 @@ async def upload_text(
     )
     
     return db_document
+
+@router.get("/debug/supabase")
+def debug_supabase():
+    return {
+        "supabase_configured": supabase_client is not None,
+        "url_present": SUPABASE_URL is not None,
+        "key_present": SUPABASE_KEY is not None
+    }
