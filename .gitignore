@@ -19,3 +19,4 @@ backend/build/
 *.log
 chat_error_log.txt
 *.sqlite3
+backend/uploads/

@@ -32,7 +32,8 @@ async def upload_document(
         )
     
     # Save the physical file
-    file_id = f"{uuid.uuid4()}_{file.filename}"
+    safe_filename = file.filename.replace(" ", "_")
+    file_id = f"{uuid.uuid4()}_{safe_filename}"
     file_path = os.path.join(UPLOAD_DIR, file_id)
     file_content = await file.read()
     with open(file_path, "wb") as buffer:

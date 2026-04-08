@@ -400,11 +400,12 @@ export default function Chat() {
                     const match = chunk.match(/!\[(.*?)\]\((.*?)\)/);
                     if (match) {
                       const [, alt, path] = match;
-                      const fullUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${path}`;
+                      const encodedPath = path.startsWith('http') ? path : path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                      const finalUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${encodedPath}`;
                       return (
                         <div key={idx} className="my-4 group relative">
                           <img 
-                            src={fullUrl} 
+                            src={finalUrl} 
                             alt={alt} 
                             className="max-w-full rounded-2xl shadow-xl shadow-blue-500/10 border border-[var(--border)] hover:scale-[1.02] transition-transform duration-500" 
                           />
@@ -417,12 +418,13 @@ export default function Chat() {
                     const match = chunk.match(/\[(.*?)\]\((.*?)\)/);
                     if (match) {
                       const [, text, path] = match;
+                      const encodedPath = path.startsWith('http') ? path : path.split('/').map(segment => encodeURIComponent(segment)).join('/');
                       const isPdf = path.toLowerCase().endsWith('.pdf');
-                      const fullUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${path}`;
+                      const finalUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${encodedPath}`;
                       return (
                         <a 
                           key={idx} 
-                          href={fullUrl} 
+                          href={finalUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all my-1 ${

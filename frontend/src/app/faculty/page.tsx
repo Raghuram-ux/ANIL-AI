@@ -27,7 +27,7 @@ export default function FacultyDashboard() {
 
   const recentActivity = [
     { id: 1, type: 'Query', content: 'Student asked about End Semester Exams schedule', time: '2 mins ago' },
-    { id: 2, type: 'Upload', content: 'Distributed Systems Lecture 12 added to AI', time: '1 hour ago' },
+    { id: 2, type: 'Update', content: 'Library Digital Access policy updated by Admin', time: '1 hour ago' },
     { id: 3, type: 'Alert', content: 'High traffic detected on "Campus Placements" topic', time: '3 hours ago' },
   ];
 
@@ -39,16 +39,10 @@ export default function FacultyDashboard() {
           <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tighter">
             Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-amber-500">{facultyName}</span>
           </h1>
-          <p className="text-[var(--foreground)] opacity-50 mt-2 font-medium">Manage your curriculum's AI presence and track student engagement.</p>
+          <p className="text-[var(--foreground)] opacity-50 mt-2 font-medium">Review campus intelligence and student interest analytics.</p>
         </div>
         <div className="flex gap-3">
-          <Link 
-            href="/add-document"
-            className="flex items-center px-5 py-2.5 bg-[var(--primary)] text-white rounded-xl font-bold text-sm hover:translate-y-[-2px] hover:shadow-lg hover:shadow-[var(--primary)]/20 transition-all"
-          >
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Add Course Material
-          </Link>
+          {/* Admin material buttons removed as requested */}
         </div>
       </div>
 
@@ -85,9 +79,9 @@ export default function FacultyDashboard() {
           <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden group">
             <div className="relative z-10">
               <h3 className="text-2xl font-bold mb-2">Automate Your Office Hours</h3>
-              <p className="opacity-80 mb-6 text-sm max-w-md">Laxx AI can now handle course-specific FAQs using your lecture notes. Upload your syllabus to get started.</p>
-              <button className="px-6 py-3 bg-white text-indigo-700 rounded-xl font-bold text-sm flex items-center group-hover:px-8 transition-all">
-                Learn More <ArrowRight className="ml-2 w-4 h-4" />
+              <p className="opacity-80 mb-6 text-sm max-w-md">Laxx AI can now handle course-specific FAQs using your curriculum data. Coordinate with the Administrator to integrate your materials into the intelligence base.</p>
+              <button className="px-6 py-3 bg-white text-indigo-700 rounded-xl font-bold text-sm flex items-center hover:shadow-xl transition-all">
+                Contact Admin <ArrowRight className="ml-2 w-4 h-4" />
               </button>
             </div>
             <GraduationCap className="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 rotate-12 group-hover:scale-110 transition-transform duration-500" />
