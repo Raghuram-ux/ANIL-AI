@@ -17,23 +17,36 @@ with database.engine.connect() as conn:
     conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     conn.commit()
 
-# Ensure audience column exists
-with database.engine.connect() as conn:
-    try:
-        conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS audience VARCHAR DEFAULT 'all';"))
-        # Force fill any existing nulls just in case
-        conn.execute(text("UPDATE documents SET audience = 'all' WHERE audience IS NULL;"))
-        conn.commit()
-    except Exception as e:
-        print(f"Migration warning (audience): {e}")
+# Robust Database Migrations
+def run_migrations():
+    from sqlalchemy import inspect
+    inspector = inspect(database.engine)
+    columns = [c['name'] for c in inspector.get_columns('documents')]
+    
+    with database.engine.connect() as conn:
+        if 'audience' not in columns:
+            print("Migration: Adding 'audience' column to documents table...")
+            try:
+                conn.execute(text("ALTER TABLE documents ADD COLUMN audience VARCHAR DEFAULT 'all';"))
+                conn.commit()
+            except Exception as e:
+                print(f"Migration error (audience): {e}")
+        
+        if 'file_id' not in columns:
+            print("Migration: Adding 'file_id' column to documents table...")
+            try:
+                # Use a safer ALTER TABLE for Postgres
+                conn.execute(text("ALTER TABLE documents ADD COLUMN file_id VARCHAR;"))
+                conn.commit()
+            except Exception as e:
+                print(f"Migration error (file_id): {e}")
+                
+        # Optional: ensure existing nulls are filled for audience
+        if 'audience' in columns:
+            conn.execute(text("UPDATE documents SET audience = 'all' WHERE audience IS NULL;"))
+            conn.commit()
 
-# Ensure file_id column exists
-with database.engine.connect() as conn:
-    try:
-        conn.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_id VARCHAR;"))
-        conn.commit()
-    except Exception as e:
-        print(f"Migration warning (file_id): {e}")
+run_migrations()
 
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)

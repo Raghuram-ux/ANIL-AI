@@ -400,8 +400,11 @@ export default function Chat() {
                     const match = chunk.match(/!\[(.*?)\]\((.*?)\)/);
                     if (match) {
                       const [, alt, path] = match;
-                      const encodedPath = path.startsWith('http') ? path : path.split('/').map(segment => encodeURIComponent(segment)).join('/');
-                      const finalUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${encodedPath}`;
+                      const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                      
+                      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+                      const finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+                      
                       return (
                         <div key={idx} className="my-4 group relative">
                           <img 
@@ -418,9 +421,11 @@ export default function Chat() {
                     const match = chunk.match(/\[(.*?)\]\((.*?)\)/);
                     if (match) {
                       const [, text, path] = match;
-                      const encodedPath = path.startsWith('http') ? path : path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                      const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                      
+                      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+                      const finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
                       const isPdf = path.toLowerCase().endsWith('.pdf');
-                      const finalUrl = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${encodedPath}`;
                       return (
                         <a 
                           key={idx} 
