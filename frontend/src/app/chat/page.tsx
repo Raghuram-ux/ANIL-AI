@@ -400,10 +400,14 @@ export default function Chat() {
                     const match = chunk.match(/!\[(.*?)\]\((.*?)\)/);
                     if (match) {
                       const [, alt, path] = match;
-                      const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                      const isAbsolute = path.startsWith('http');
+                      let finalUrl = path;
                       
-                      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
-                      const finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+                      if (!isAbsolute) {
+                        const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+                        finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+                      }
                       
                       return (
                         <div key={idx} className="my-4 group relative">
@@ -421,10 +425,15 @@ export default function Chat() {
                     const match = chunk.match(/\[(.*?)\]\((.*?)\)/);
                     if (match) {
                       const [, text, path] = match;
-                      const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                      const isAbsolute = path.startsWith('http');
+                      let finalUrl = path;
                       
-                      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
-                      const finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+                      if (!isAbsolute) {
+                        const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+                        finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+                      }
+
                       const isPdf = path.toLowerCase().endsWith('.pdf');
                       return (
                         <a 
