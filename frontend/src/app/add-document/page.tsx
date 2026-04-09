@@ -39,9 +39,21 @@ export default function AddDocument() {
       });
       setFile(null);
       alert('Document uploaded and processed successfully.');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to upload document.');
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      const detail = err?.response?.data?.detail;
+      const status = err?.response?.status;
+      if (status === 401) {
+        alert('Session expired. Please log in again.');
+      } else if (status === 403) {
+        alert('Permission denied. Admin access required.');
+      } else if (detail) {
+        alert(`Upload failed: ${detail}`);
+      } else if (err?.message) {
+        alert(`Upload failed: ${err.message}`);
+      } else {
+        alert('Upload failed. Please check your connection and try again.');
+      }
     } finally {
       setIsUploading(false);
     }
@@ -63,9 +75,21 @@ export default function AddDocument() {
       setTextTitle('');
       setTextContent('');
       alert('Text knowledge ingested successfully.');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to ingest text.');
+    } catch (err: any) {
+      console.error('Text ingest error:', err);
+      const detail = err?.response?.data?.detail;
+      const status = err?.response?.status;
+      if (status === 401) {
+        alert('Session expired. Please log in again.');
+      } else if (status === 403) {
+        alert('Permission denied. Admin access required.');
+      } else if (detail) {
+        alert(`Ingest failed: ${detail}`);
+      } else if (err?.message) {
+        alert(`Ingest failed: ${err.message}`);
+      } else {
+        alert('Failed to ingest text. Please check your connection and try again.');
+      }
     } finally {
       setIsUploading(false);
     }

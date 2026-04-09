@@ -49,28 +49,50 @@ async def upload_document(
     file_id = f"{uuid.uuid4()}_{safe_filename}"
     file_content = await file.read()
     
-    storage_success = False
     if supabase_client:
+        # Supabase is configured — upload there and fail loudly if it errors
         try:
-            # Explicitly set content type to help Supabase
-            content_type = file.content_type or "application/octet-stream"
+            content_type = file.content_type
+            if filename.endswith(".pdf"):
+                content_type = "application/pdf"
+            elif filename.endswith((".jpg", ".jpeg")):
+                content_type = "image/jpeg"
+            elif filename.endswith(".png"):
+                content_type = "image/png"
+            elif filename.endswith(".webp"):
+                content_type = "image/webp"
+            elif filename.endswith(".txt"):
+                content_type = "text/plain"
+            elif filename.endswith(".md"):
+                content_type = "text/markdown"
+            
+            if not content_type:
+                content_type = "application/octet-stream"
+
             supabase_client.storage.from_('documents').upload(
                 file_id, 
                 file_content,
                 file_options={"cacheControl": "3600", "upsert": "false", "contentType": content_type}
             )
-            storage_success = True
             print(f"Supabase upload success: {file_id}")
         except Exception as e:
-            # We'll raise an error here so the user sees it in the frontend if the cloud upload fails
             print(f"Supabase upload failed: {str(e)}")
-            # Fail the request so the admin gets immediate feedback
             raise HTTPException(status_code=500, detail=f"Cloud storage upload failed: {str(e)}")
+    else:
+        print(f"No Supabase configured — saving locally: {file_id}")
 
-    # Always save a local copy as fallback/development and for local processing
+    # Always save a local copy for local processing / RAG ingestion
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     file_path = os.path.join(UPLOAD_DIR, file_id)
-    with open(file_path, "wb") as buffer:
-        buffer.write(file_content)
+    try:
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+        print(f"Local file saved: {file_path}")
+    except Exception as e:
+        print(f"Local file write failed: {str(e)}")
+        if not supabase_client:
+            # If we have no cloud storage either, this is a hard failure
+            raise HTTPException(status_code=500, detail=f"Could not save file locally: {str(e)}")
     
     db_document = models.Document(
         filename=file.filename,
@@ -153,5 +175,7 @@ def debug_supabase():
     return {
         "supabase_configured": supabase_client is not None,
         "url_present": SUPABASE_URL is not None,
-        "key_present": SUPABASE_KEY is not None
+        "key_present": SUPABASE_KEY is not None,
+        "upload_dir_exists": os.path.exists(UPLOAD_DIR),
+        "upload_dir_writable": os.access(UPLOAD_DIR, os.W_OK) if os.path.exists(UPLOAD_DIR) else False,
     }
