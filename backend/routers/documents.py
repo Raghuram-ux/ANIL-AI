@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Form
+from fastapi.responses import StreamingResponse
+import requests as http_requests
 from sqlalchemy.orm import Session
 import os
 import uuid
@@ -125,15 +127,11 @@ def list_documents(
     current_user: models.User = Depends(auth.get_admin_user)
 ):
     documents = db.query(models.Document).all()
-    # Populate file_url for each document
+    # Populate file_url for each document using backend proxy
     for doc in documents:
         if doc.file_id:
-            if supabase_client:
-                # Direct permanent link from Supabase
-                doc.file_url = f"{SUPABASE_URL}/storage/v1/object/public/documents/{doc.file_id}"
-            else:
-                # Transient local link from Render
-                doc.file_url = f"/api/uploads/{doc.file_id}"
+            # Always use backend proxy — works for both Supabase and local storage
+            doc.file_url = f"/api/file/{doc.file_id}"
     return documents
 
 @router.delete("/{document_id}")
@@ -189,3 +187,54 @@ def debug_supabase():
         "upload_dir_exists": os.path.exists(UPLOAD_DIR),
         "upload_dir_writable": os.access(UPLOAD_DIR, os.W_OK) if os.path.exists(UPLOAD_DIR) else False,
     }
+
+
+@router.get("/file/{file_id:path}")
+def serve_file(
+    file_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Proxy endpoint: generates a Supabase signed URL (or serves locally) and streams
+    the file back to the browser. Works with private/RLS-protected buckets."""
+
+    # Verify the document exists and the user is allowed to see it
+    doc = db.query(models.Document).filter(models.Document.file_id == file_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    if not doc.allow_display:
+        raise HTTPException(status_code=403, detail="File display is disabled for this document")
+    # Audience check
+    if current_user.role == "student" and doc.audience == "faculty":
+        raise HTTPException(status_code=403, detail="Access restricted")
+    if current_user.role == "faculty" and doc.audience == "student":
+        raise HTTPException(status_code=403, detail="Access restricted")
+
+    if supabase_client:
+        try:
+            # Generate a 1-hour signed URL using the service key (bypasses RLS)
+            signed = supabase_client.storage.from_("documents").create_signed_url(file_id, 3600)
+            signed_url = signed.get("signedURL") or signed.get("signed_url") or signed.get("data", {}).get("signedUrl")
+            if not signed_url:
+                raise HTTPException(status_code=500, detail=f"Could not generate signed URL: {signed}")
+            # Stream the file through our backend so CORS/auth is transparent
+            resp = http_requests.get(signed_url, stream=True, timeout=30)
+            resp.raise_for_status()
+            content_type = resp.headers.get("Content-Type", "application/octet-stream")
+            return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=content_type)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching file from storage: {str(e)}")
+    else:
+        # Local fallback
+        local_path = os.path.join(UPLOAD_DIR, file_id)
+        if not os.path.exists(local_path):
+            raise HTTPException(status_code=404, detail="File not found on disk")
+        import mimetypes
+        content_type, _ = mimetypes.guess_type(local_path)
+        content_type = content_type or "application/octet-stream"
+        def file_iter():
+            with open(local_path, "rb") as f:
+                yield from iter(lambda: f.read(8192), b"")
+        return StreamingResponse(file_iter(), media_type=content_type)

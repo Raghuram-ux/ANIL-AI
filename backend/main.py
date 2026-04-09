@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse, StreamingResponse
 import database
 import models
 from routers import auth, documents, chat, settings
 import os
+import requests as http_requests
 
 from sqlalchemy import text
 
@@ -64,6 +66,54 @@ app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(settings.router)
+
+# ── Public file-serve endpoint ──────────────────────────────────────────────
+# This is intentionally unauthenticated so that PDF/image links opened in a
+# new browser tab (which cannot send Authorization headers) work correctly.
+# Security is provided by Supabase's time-limited signed URLs (1 hour).
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+_sb_key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+_supabase_client = None
+if SUPABASE_URL and _sb_key:
+    try:
+        from supabase import create_client
+        _supabase_client = create_client(SUPABASE_URL, _sb_key)
+    except Exception as e:
+        print(f"main.py: Supabase init failed: {e}")
+
+@app.get("/api/file/{file_id:path}")
+def serve_file_public(file_id: str):
+    """Public proxy: serves uploaded files via Supabase signed URL or local disk."""
+    if _supabase_client:
+        try:
+            signed = _supabase_client.storage.from_("documents").create_signed_url(file_id, 3600)
+            # Handle different versions of the supabase-py SDK
+            signed_url = (
+                signed.get("signedURL")
+                or signed.get("signed_url")
+                or (signed.get("data") or {}).get("signedUrl")
+            )
+            if signed_url:
+                return RedirectResponse(url=signed_url)
+        except Exception as e:
+            print(f"Signed URL generation failed: {e}")
+
+    # Local disk fallback
+    local_path = os.path.join("uploads", file_id)
+    if os.path.exists(local_path):
+        import mimetypes
+        content_type, _ = mimetypes.guess_type(local_path)
+        content_type = content_type or "application/octet-stream"
+        def file_iter():
+            with open(local_path, "rb") as f:
+                yield from iter(lambda: f.read(8192), b"")
+        return StreamingResponse(file_iter(), media_type=content_type)
+
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/")
 def health_check():

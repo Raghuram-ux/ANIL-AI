@@ -54,8 +54,9 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
 
     # Format context with source headers and URLs for visual content support
     SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-    use_supabase = bool(SUPABASE_URL and SUPABASE_KEY)
+    use_supabase = bool(SUPABASE_URL and (SUPABASE_SERVICE_KEY or SUPABASE_KEY))
     
     context_chunks = []
     for r in results:
@@ -63,9 +64,10 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
         doc_info = f"[DOCUMENT: {r.document.filename}]"
         if r.document.file_id and r.document.allow_display:
             if use_supabase:
-                 doc_info += f" (URL: {SUPABASE_URL}/storage/v1/object/public/documents/{r.document.file_id})"
+                # Use backend proxy URL for signed access (works with private/RLS buckets)
+                doc_info += f" (URL: /api/file/{r.document.file_id})"
             else:
-                 doc_info += f" (URL: /api/uploads/{r.document.file_id})"
+                doc_info += f" (URL: /api/uploads/{r.document.file_id})"
         context_chunks.append(f"{doc_info}\n{r.content}")
     
     context = "\n\n".join(context_chunks)
