@@ -7,14 +7,22 @@ from database import get_db
 from rag.ingestion import process_and_store_document
 
 # Supabase Storage Configuration
+# NOTE: Use SUPABASE_SERVICE_KEY (service_role key) for backend operations.
+# The anon key is blocked by Row Level Security (RLS) policies.
+# The service_role key bypasses RLS, which is correct for trusted server code.
 from supabase import create_client, Client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")  # preferred: bypasses RLS
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # fallback: anon key (may be blocked by RLS)
 supabase_client: Client = None
 
-if SUPABASE_URL and SUPABASE_KEY:
+_supabase_auth_key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+
+if SUPABASE_URL and _supabase_auth_key:
     try:
-        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        supabase_client = create_client(SUPABASE_URL, _supabase_auth_key)
+        key_type = "service_role" if SUPABASE_SERVICE_KEY else "anon (RLS may block uploads!)"
+        print(f"Supabase initialized with {key_type} key")
     except Exception as e:
         print(f"Supabase Storage initialization failed: {e}")
 
@@ -175,7 +183,9 @@ def debug_supabase():
     return {
         "supabase_configured": supabase_client is not None,
         "url_present": SUPABASE_URL is not None,
-        "key_present": SUPABASE_KEY is not None,
+        "service_key_present": SUPABASE_SERVICE_KEY is not None,
+        "anon_key_present": SUPABASE_KEY is not None,
+        "using_service_key": SUPABASE_SERVICE_KEY is not None,
         "upload_dir_exists": os.path.exists(UPLOAD_DIR),
         "upload_dir_writable": os.access(UPLOAD_DIR, os.W_OK) if os.path.exists(UPLOAD_DIR) else False,
     }
