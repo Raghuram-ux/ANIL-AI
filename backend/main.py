@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, StreamingResponse
+from dotenv import load_dotenv
+
+# Force load environment variables before any other imports
+load_dotenv()
+
 import database
 import models
 from routers import auth, documents, chat, settings
@@ -87,8 +92,10 @@ if SUPABASE_URL and _sb_key:
 @app.get("/api/file/{file_id:path}")
 def serve_file_public(file_id: str):
     """Public proxy: serves uploaded files via Supabase signed URL or local disk."""
+    print(f"DEBUG: public file serve request for file_id: {file_id}")
     if _supabase_client:
         try:
+            print(f"DEBUG: attempting Supabase signed URL generation for {file_id}")
             signed = _supabase_client.storage.from_("documents").create_signed_url(file_id, 3600)
             # Handle different versions of the supabase-py SDK
             signed_url = (
@@ -97,15 +104,18 @@ def serve_file_public(file_id: str):
                 or (signed.get("data") or {}).get("signedUrl")
             )
             if signed_url:
+                print(f"DEBUG: successfully generated signed URL, proxying content...")
                 # Stream the file from Supabase instead of redirecting.
                 # This prevents CORS issues and ensures headers (like Content-Type) are correct.
                 resp = http_requests.get(signed_url, stream=True, timeout=30)
                 resp.raise_for_status()
                 content_type = resp.headers.get("Content-Type", "application/pdf")
-                # Force attachment/inline header if necessary, but StreamingResponse with media_type is usually enough
+                print(f"DEBUG: streaming file with content-type: {content_type}")
                 return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=content_type)
+            else:
+                print(f"DEBUG: signed URL generation returned no URL: {signed}")
         except Exception as e:
-            print(f"Proxy streaming failed: {e}")
+            print(f"CRITICAL: Proxy streaming failed for {file_id}: {e}")
 
     # Local disk fallback
     local_path = os.path.join("uploads", file_id)
