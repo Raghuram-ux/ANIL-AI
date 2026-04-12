@@ -109,8 +109,18 @@ def serve_file_public(file_id: str):
                 # This prevents CORS issues and ensures headers (like Content-Type) are correct.
                 resp = http_requests.get(signed_url, stream=True, timeout=30)
                 resp.raise_for_status()
-                content_type = resp.headers.get("Content-Type", "application/pdf")
-                print(f"DEBUG: streaming file with content-type: {content_type}")
+                
+                # Force correct content type based on extension to avoid "text/plain" issues
+                if file_id.lower().endswith(".pdf"):
+                    content_type = "application/pdf"
+                elif file_id.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+                    import mimetypes
+                    content_type, _ = mimetypes.guess_type(file_id)
+                    content_type = content_type or "image/png"
+                else:
+                    content_type = resp.headers.get("Content-Type", "application/octet-stream")
+                
+                print(f"DEBUG: streaming file with forced/detected content-type: {content_type}")
                 return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=content_type)
             else:
                 print(f"DEBUG: signed URL generation returned no URL: {signed}")
