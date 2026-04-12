@@ -56,6 +56,30 @@ run_migrations()
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)
 
+@app.on_event("startup")
+def on_startup():
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        # Check if admin exists
+        admin_username = 'Raghuram.L.N'
+        existing = db.query(models.User).filter(models.User.username == admin_username).first()
+        if not existing:
+            print(f"Startup: Creating admin user {admin_username}")
+            from routers import auth as auth_router
+            hashed_pw = auth_router.get_password_hash('jaikiller@1234')
+            new_admin = models.User(
+                username=admin_username,
+                hashed_password=hashed_pw,
+                role='admin'
+            )
+            db.add(new_admin)
+            db.commit()
+    except Exception as e:
+        print(f"Startup error: {e}")
+    finally:
+        db.close()
+
 app = FastAPI(title="College Chatbot API")
 
 app.add_middleware(
@@ -68,10 +92,10 @@ app.add_middleware(
 
 app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-app.include_router(auth.router)
-app.include_router(documents.router)
-app.include_router(chat.router)
-app.include_router(settings.router)
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(documents.router, prefix="/api/admin/documents", tags=["Documents"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 
 # ── Public file-serve endpoint ──────────────────────────────────────────────
 # This is intentionally unauthenticated so that PDF/image links opened in a
