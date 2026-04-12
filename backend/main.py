@@ -72,6 +72,28 @@ app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 def read_root():
     return {"message": "College Chatbot API is running"}
 
+def seed_admin_if_missing(db: SessionLocal):
+    # Ensure tables are created
+    models.Base.metadata.create_all(bind=database.engine)
+    
+    # Check if admin exists
+    admin_username = 'Raghuram.L.N'
+    existing = db.query(models.User).filter(models.User.username == admin_username).first()
+    if not existing:
+        print(f"Sync: Creating admin user {admin_username}")
+        # Import auth here to avoid circular dependencies
+        from routers import auth as auth_router
+        hashed_pw = auth_router.get_password_hash('jaikiller@1234')
+        new_admin = models.User(
+            username=admin_username,
+            hashed_password=hashed_pw,
+            role='admin'
+        )
+        db.add(new_admin)
+        db.commit()
+        return True
+    return False
+
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
@@ -129,30 +151,36 @@ def serve_file_public(file_id: str):
 
 @app.get("/api/admin/fix-database-sync")
 def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
-    """Internal utility to resolve known broken records on startup/request."""
-    if not _supabase_client:
-        return {"status": "error", "message": "Supabase not configured"}
+    """Internal utility to resolve broken records and recover admin user."""
+    res = {"status": "success", "updates": {}}
+    
+    # 1. Recover Admin if missing
+    admin_created = seed_admin_if_missing(db)
+    res["updates"]["admin"] = "Created" if admin_created else "Verified (Already exists)"
+    
+    # 2. Sync Files if Supabase is configured
+    if _supabase_client:
+        try:
+            files = _supabase_client.storage.from_("documents").list()
+            file_list = [f['name'] for f in files]
+            docs = db.query(models.Document).all()
+            updated_count = 0
+            
+            for doc in docs:
+                if not doc.file_id or doc.file_id == "None" or doc.file_id not in file_list:
+                    match = next((name for name in file_list if doc.filename in name), None)
+                    if match:
+                        doc.file_id = match
+                        updated_count += 1
+            
+            db.commit()
+            res["updates"]["files_synced"] = updated_count
+        except Exception as e:
+            res["updates"]["files_error"] = str(e)
+    else:
+        res["updates"]["files_status"] = "Skipped (Supabase not configured)"
         
-    try:
-        files = _supabase_client.storage.from_("documents").list()
-        file_list = [f['name'] for f in files]
-        docs = db.query(models.Document).all()
-        updated_count = 0
-        
-        for doc in docs:
-            # If file_id is missing, or it's not present in the actual storage bucket
-            if not doc.file_id or doc.file_id == "None" or doc.file_id not in file_list:
-                print(f"Sync: Repairing record for {doc.filename}")
-                # Try to find the best match by filename
-                match = next((name for name in file_list if doc.filename in name), None)
-                if match:
-                    doc.file_id = match
-                    updated_count += 1
-        
-        db.commit()
-        return {"status": "success", "updated_records": updated_count}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    return res
 
 if __name__ == "__main__":
     import uvicorn
