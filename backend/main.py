@@ -92,10 +92,10 @@ app.add_middleware(
 
 app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(documents.router, prefix="/api/admin/documents", tags=["Documents"])
-app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
+app.include_router(auth.router)
+app.include_router(documents.router)
+app.include_router(chat.router)
+app.include_router(settings.router)
 
 # ── Public file-serve endpoint ──────────────────────────────────────────────
 # This is intentionally unauthenticated so that PDF/image links opened in a
