@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, FileResponse
 from dotenv import load_dotenv
 
 # Force load environment variables before any other imports
@@ -13,71 +13,66 @@ from routers import auth, documents, chat, settings
 import os
 import requests as http_requests
 import urllib.parse
-
 from sqlalchemy import text
 
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 
-# Create database extension first
-with database.engine.connect() as conn:
-    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    conn.commit()
+app = FastAPI(title="College Chatbot API")
 
-# Robust Database Migrations
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def run_migrations():
     from sqlalchemy import inspect
     inspector = inspect(database.engine)
     columns = [c['name'] for c in inspector.get_columns('documents')]
     
     with database.engine.connect() as conn:
+        # Check if audience exists
         if 'audience' not in columns:
-            print("Migration: Adding 'audience' column to documents table...")
-            try:
-                conn.execute(text("ALTER TABLE documents ADD COLUMN audience VARCHAR DEFAULT 'all';"))
-                conn.commit()
-            except Exception as e:
-                print(f"Migration error (audience): {e}")
+            print("Migration: Adding audience column to documents")
+            conn.execute(text("ALTER TABLE documents ADD COLUMN audience VARCHAR DEFAULT 'all';"))
+            conn.commit()
         
+        # Check if file_id exists
         if 'file_id' in columns:
-            # Ensure audience exists too
+            # Ensure allow_display exists
             if 'allow_display' not in columns:
-                print("Migration: Adding 'allow_display' column to documents table...")
-                try:
-                    conn.execute(text("ALTER TABLE documents ADD COLUMN allow_display BOOLEAN DEFAULT TRUE;"))
-                    conn.execute(text("UPDATE documents SET allow_display = TRUE WHERE allow_display IS NULL;"))
-                    conn.commit()
-                except Exception as e:
-                    print(f"Migration error (allow_display): {e}")
+                print("Migration: Adding allow_display column to documents")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN allow_display BOOLEAN DEFAULT TRUE;"))
+                conn.commit()
+            
+            # Update any existing records
+            conn.execute(text("UPDATE documents SET allow_display = TRUE WHERE allow_display IS NULL;"))
+            conn.commit()
 
-run_migrations()
+@app.on_event("startup")
+def on_startup():
+    models.Base.metadata.create_all(bind=database.engine)
+    run_migrations()
 
-# Create database tables
-models.Base.metadata.create_all(bind=database.engine)
+# Include routers
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(documents.router, prefix="/admin/documents", tags=["Documents"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(settings.router, prefix="/settings", tags=["Settings"])
 
-app = FastAPI(title="College Chatbot API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Static files for uploads fallback
 app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-app.include_router(auth.router)
-app.include_router(documents.router)
-app.include_router(chat.router)
-app.include_router(settings.router)
+@app.get("/")
+def read_root():
+    return {"message": "College Chatbot API is running"}
 
-# ── Public file-serve endpoint ──────────────────────────────────────────────
-# This is intentionally unauthenticated so that PDF/image links opened in a
-# new browser tab (which cannot send Authorization headers) work correctly.
-# Security is provided by Supabase's time-limited signed URLs (1 hour).
-
+# Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -92,58 +87,71 @@ if SUPABASE_URL and _sb_key:
 
 @app.get("/api/file/{file_id:path}")
 def serve_file_public(file_id: str):
-    """Public proxy: serves uploaded files via Supabase signed URL or local disk."""
-    # Unquote the file_id in case it was URL-encoded (e.g. for parentheses or spaces)
+    """Public proxy: serves uploaded files with smart fallback/auto-heal."""
     file_id = urllib.parse.unquote(file_id)
-    print(f"DEBUG: public file serve request for file_id: {file_id}")
-    if _supabase_client:
-        try:
-            print(f"DEBUG: attempting Supabase signed URL generation for {file_id}")
-            signed = _supabase_client.storage.from_("documents").create_signed_url(file_id, 3600)
-            # Handle different versions of the supabase-py SDK
-            signed_url = (
-                signed.get("signedURL")
-                or signed.get("signed_url")
-                or (signed.get("data") or {}).get("signedUrl")
-            )
-            if signed_url:
-                print(f"DEBUG: successfully generated signed URL, proxying content...")
-                # Stream the file from Supabase instead of redirecting.
-                # This prevents CORS issues and ensures headers (like Content-Type) are correct.
-                resp = http_requests.get(signed_url, stream=True, timeout=30)
-                resp.raise_for_status()
-                
-                # Force correct content type based on extension to avoid "text/plain" issues
-                if file_id.lower().endswith(".pdf"):
-                    content_type = "application/pdf"
-                elif file_id.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
-                    import mimetypes
-                    content_type, _ = mimetypes.guess_type(file_id)
-                    content_type = content_type or "image/png"
-                else:
-                    content_type = resp.headers.get("Content-Type", "application/octet-stream")
-                
-                print(f"DEBUG: streaming file with forced/detected content-type: {content_type}")
-                return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=content_type)
-            else:
-                print(f"DEBUG: signed URL generation returned no URL: {signed}")
-        except Exception as e:
-            print(f"CRITICAL: Proxy streaming failed for {file_id}: {e}")
+    print(f"DEBUG: Smart Resolve request for: {file_id}")
+    
+    if not _supabase_client:
+        # Local fallback
+        local_path = os.path.join("uploads", file_id)
+        if os.path.exists(local_path):
+            return FileResponse(local_path)
+        raise HTTPException(status_code=404, detail="Storage not configured and local file missing")
 
-    # Local disk fallback
-    local_path = os.path.join("uploads", file_id)
-    if os.path.exists(local_path):
-        import mimetypes
-        content_type, _ = mimetypes.guess_type(local_path)
-        content_type = content_type or "application/octet-stream"
-        def file_iter():
-            with open(local_path, "rb") as f:
-                yield from iter(lambda: f.read(8192), b"")
-        return StreamingResponse(file_iter(), media_type=content_type)
+    try:
+        # 1. Primary Attempt: Direct lookup using provided ID
+        signed = _supabase_client.storage.from_("documents").create_signed_url(file_id, 3600)
+        signed_url = (signed.get("signedURL") or signed.get("signed_url") or (signed.get("data") or {}).get("signedUrl"))
+        
+        # 2. Secondary Attempt: Filename Fallback (if direct lookup failed)
+        if not signed_url:
+            print(f"DEBUG: Initial lookup failed, searching bucket for filename match...")
+            files = _supabase_client.storage.from_("documents").list()
+            # Extract filename part
+            target_name = file_id.split('_', 1)[-1] if '_' in file_id else file_id
+            match = next((f for f in files if target_name in f['name']), None)
+            
+            if match:
+                print(f"DEBUG: Found fallback match: {match['name']}")
+                signed = _supabase_client.storage.from_("documents").create_signed_url(match['name'], 3600)
+                signed_url = (signed.get("signedURL") or signed.get("signed_url") or (signed.get("data") or {}).get("signedUrl"))
 
-    from fastapi import HTTPException
-    raise HTTPException(status_code=404, detail="File not found")
+        if signed_url:
+            resp = http_requests.get(signed_url, stream=True, timeout=30)
+            resp.raise_for_status()
+            content_type = "application/pdf" if file_id.lower().endswith(".pdf") else resp.headers.get("Content-Type")
+            return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=content_type)
+            
+    except Exception as e:
+        print(f"CRITICAL: Smart Resolve failed: {e}")
 
-@app.get("/")
-def health_check():
-    return {"status": "healthy"}
+    raise HTTPException(status_code=404, detail="File could not be resolved in storage")
+
+@app.get("/api/admin/fix-database-sync")
+def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
+    """Internal utility to resolve known broken records on startup/request."""
+    if not _supabase_client:
+        return {"status": "error", "message": "Supabase not configured"}
+        
+    try:
+        files = _supabase_client.storage.from_("documents").list()
+        docs = db.query(models.Document).all()
+        updated_count = 0
+        
+        for doc in docs:
+            if not doc.file_id or doc.file_id == "None":
+                # Try to find a match in storage
+                match = next((f for f in files if doc.filename in f['name']), None)
+                if match:
+                    doc.file_id = match['name']
+                    updated_count += 1
+        
+        db.commit()
+        return {"status": "success", "updated_records": updated_count}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
