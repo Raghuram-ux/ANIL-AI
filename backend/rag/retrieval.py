@@ -69,11 +69,9 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
         doc_info = f"[DOCUMENT: {r.document.filename} (Type: {doc_type})]"
         
         if has_file and r.document.allow_display:
-            if use_supabase:
-                # Use backend proxy URL for signed access (works with private/RLS buckets)
-                doc_info += f" (URL: /api/file/{r.document.file_id})"
-            else:
-                doc_info += f" (URL: /api/file/{r.document.file_id})" # Standard fallback path
+            # Use backend proxy URL for signed access (works with private/RLS buckets)
+            # Formatting as (FILE_PATH: /api/file/...) to prevent LLM confusion
+            doc_info += f" (FILE_PATH: /api/file/{r.document.file_id})"
         
         context_chunks.append(f"{doc_info}\n{r.content}")
     
@@ -92,13 +90,16 @@ Your goal is to assist students and staff in a friendly, approachable, and engag
 5. **Language**: Default English. Tamil/Tanglish if the user uses them.
 
 ### VISUAL & FILE CONTENT RULES:
-- You have access to images and PDF documents via associated URLs found in the markers like `(URL: ...)`.
+- You have access to images and PDF documents via associated URLs found in the markers like `(FILE_PATH: ...)`.
 - **CRITICAL**: ONLY include a link or image if the user explicitly asks for it (e.g., "Show me the map", "Send me the PDF").
 - **STRICT URL POLICY**: 
-  - ONLY use URLs explicitly provided in the context markers (e.g., `/api/file/...`).
-  - If a document is marked as `Type: TEXT_KNOWLEDGE` or does NOT have a `(URL: ...)` marker, it is a text snippet and has NO downloadable file. 
-  - **DO NOT** guess, hallucinate, or construct URLs (like `/api/file/filename.pdf`) for documents that don't have an explicit URL in the context.
-  - If a user asks for a file that doesn't have a URL, say: "I have the information for that document, but the original file is not available for download right now."
+  - ONLY use the path provided *after* `FILE_PATH: ` inside the parentheses (e.g., `/api/file/xyz.pdf`).
+  - **DO NOT** include the string "FILE_PATH: " or "URL: " in your markdown links. 
+  - **Correct format**: `[View Syllabus](/api/file/abc.pdf)`
+  - **Incorrect format**: `[View Syllabus](FILE_PATH: /api/file/abc.pdf)` or `[View Syllabus](URL: /api/file/abc.pdf)`
+  - If a document is marked as `Type: TEXT_KNOWLEDGE` or does NOT have a `(FILE_PATH: ...)` marker, it is a text snippet and has NO downloadable file. 
+  - **DO NOT** guess, hallucinate, or construct paths if they are not explicitly present in the context.
+  - If a user asks for a file that doesn't have a path, say: "I have the information for that document, but the original file is not available for download right now."
 
 --- CAMPUS KNOWLEDGE BASE ---
 {context}
