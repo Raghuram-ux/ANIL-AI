@@ -135,15 +135,18 @@ def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
         
     try:
         files = _supabase_client.storage.from_("documents").list()
+        file_list = [f['name'] for f in files]
         docs = db.query(models.Document).all()
         updated_count = 0
         
         for doc in docs:
-            if not doc.file_id or doc.file_id == "None":
-                # Try to find a match in storage
-                match = next((f for f in files if doc.filename in f['name']), None)
+            # If file_id is missing, or it's not present in the actual storage bucket
+            if not doc.file_id or doc.file_id == "None" or doc.file_id not in file_list:
+                print(f"Sync: Repairing record for {doc.filename}")
+                # Try to find the best match by filename
+                match = next((name for name in file_list if doc.filename in name), None)
                 if match:
-                    doc.file_id = match['name']
+                    doc.file_id = match
                     updated_count += 1
         
         db.commit()
