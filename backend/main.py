@@ -14,6 +14,7 @@ import os
 import requests as http_requests
 import urllib.parse
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):
@@ -72,14 +73,36 @@ app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 def read_root():
     return {"message": "College Chatbot API is running"}
 
+def seed_admin_if_missing(db: Session):
+    # Check if admin exists
+    admin_username = 'Raghuram.L.N'
+    existing = db.query(models.User).filter(models.User.username == admin_username).first()
+    if not existing:
+        print(f"Sync: Creating admin user {admin_username}")
+        # Import auth here to avoid circular dependencies
+        from routers import auth as auth_router
+        hashed_pw = auth_router.get_password_hash('jaikiller@1234')
+        new_admin = models.User(
+            username=admin_username,
+            hashed_password=hashed_pw,
+            role='admin'
+        )
+        db.add(new_admin)
+        db.commit()
+        return True
+    return False
+
 @app.get("/fix-database-sync")
-def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
+def fix_database_sync(db: Session = Depends(database.get_db)):
     """Internal utility to resolve broken records and recover admin user."""
     res = {"status": "success", "updates": {}}
     
     # 1. Recover Admin if missing
-    admin_created = seed_admin_if_missing(db)
-    res["updates"]["admin"] = "Created" if admin_created else "Verified (Already exists)"
+    try:
+        admin_created = seed_admin_if_missing(db)
+        res["updates"]["admin"] = "Created" if admin_created else "Verified (Already exists)"
+    except Exception as e:
+        res["updates"]["admin_error"] = str(e)
     
     # 2. Sync Files if Supabase is configured
     if _supabase_client:
@@ -106,28 +129,6 @@ def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
         res["updates"]["files_status"] = "Skipped (Supabase not configured)"
         
     return res
-
-def seed_admin_if_missing(db: SessionLocal):
-    # Ensure tables are created
-    models.Base.metadata.create_all(bind=database.engine)
-    
-    # Check if admin exists
-    admin_username = 'Raghuram.L.N'
-    existing = db.query(models.User).filter(models.User.username == admin_username).first()
-    if not existing:
-        print(f"Sync: Creating admin user {admin_username}")
-        # Import auth here to avoid circular dependencies
-        from routers import auth as auth_router
-        hashed_pw = auth_router.get_password_hash('jaikiller@1234')
-        new_admin = models.User(
-            username=admin_username,
-            hashed_password=hashed_pw,
-            role='admin'
-        )
-        db.add(new_admin)
-        db.commit()
-        return True
-    return False
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -183,13 +184,6 @@ def serve_file_public(file_id: str):
         print(f"CRITICAL: Smart Resolve failed: {e}")
 
     raise HTTPException(status_code=404, detail="File could not be resolved in storage")
-
-        except Exception as e:
-            res["updates"]["files_error"] = str(e)
-    else:
-        res["updates"]["files_status"] = "Skipped (Supabase not configured)"
-        
-    return res
 
 if __name__ == "__main__":
     import uvicorn
