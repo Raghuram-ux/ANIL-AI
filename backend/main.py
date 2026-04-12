@@ -56,6 +56,8 @@ run_migrations()
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)
 
+app = FastAPI(title="College Chatbot API")
+
 @app.on_event("startup")
 def on_startup():
     from database import SessionLocal
@@ -79,8 +81,6 @@ def on_startup():
         print(f"Startup error: {e}")
     finally:
         db.close()
-
-app = FastAPI(title="College Chatbot API")
 
 app.add_middleware(
     CORSMiddleware,
