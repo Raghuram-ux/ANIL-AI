@@ -144,8 +144,17 @@ def delete_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    # Try to delete associated local file
+    # Try to delete associated file from storage
     if document.file_id:
+        # Delete from Supabase if configured
+        if supabase_client:
+            try:
+                res = supabase_client.storage.from_("documents").remove([document.file_id])
+                print(f"Deleted Supabase file: {document.file_id}, response: {res}")
+            except Exception as e:
+                print(f"Failed to delete Supabase file {document.file_id}: {e}")
+                
+        # Try to delete associated local fallback file just in case
         local_path = os.path.join(UPLOAD_DIR, document.file_id)
         if os.path.exists(local_path):
             try:
@@ -156,7 +165,7 @@ def delete_document(
 
     db.delete(document)
     db.commit()
-    return {"message": "Document and associated file (if any) deleted successfully"}
+    return {"message": "Document and associated file deleted successfully from database and storage"}
 
 @router.post("/text", response_model=schemas.DocumentResponse)
 async def upload_text(
