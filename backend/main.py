@@ -97,9 +97,15 @@ def serve_file_public(file_id: str):
                 or (signed.get("data") or {}).get("signedUrl")
             )
             if signed_url:
-                return RedirectResponse(url=signed_url)
+                # Stream the file from Supabase instead of redirecting.
+                # This prevents CORS issues and ensures headers (like Content-Type) are correct.
+                resp = http_requests.get(signed_url, stream=True, timeout=30)
+                resp.raise_for_status()
+                content_type = resp.headers.get("Content-Type", "application/pdf")
+                # Force attachment/inline header if necessary, but StreamingResponse with media_type is usually enough
+                return StreamingResponse(resp.iter_content(chunk_size=8192), media_type=content_type)
         except Exception as e:
-            print(f"Signed URL generation failed: {e}")
+            print(f"Proxy streaming failed: {e}")
 
     # Local disk fallback
     local_path = os.path.join("uploads", file_id)
