@@ -97,11 +97,11 @@ async def upload_document(
     try:
         with open(file_path, "wb") as buffer:
             buffer.write(file_content)
-        print(f"Local file saved: {file_path}")
+        abs_path = os.path.abspath(file_path)
+        print(f"DEBUG: File saved at {abs_path}")
     except Exception as e:
-        print(f"Local file write failed: {str(e)}")
+        print(f"CRITICAL: Local file write failed: {str(e)}")
         if not supabase_client:
-            # If we have no cloud storage either, this is a hard failure
             raise HTTPException(status_code=500, detail=f"Could not save file locally: {str(e)}")
     
     db_document = models.Document(
@@ -144,9 +144,19 @@ def delete_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
+    # Try to delete associated local file
+    if document.file_id:
+        local_path = os.path.join(UPLOAD_DIR, document.file_id)
+        if os.path.exists(local_path):
+            try:
+                os.remove(local_path)
+                print(f"Deleted local file: {local_path}")
+            except Exception as e:
+                print(f"Failed to delete local file: {e}")
+
     db.delete(document)
     db.commit()
-    return {"message": "Document deleted successfully"}
+    return {"message": "Document and associated file (if any) deleted successfully"}
 
 @router.post("/text", response_model=schemas.DocumentResponse)
 async def upload_text(

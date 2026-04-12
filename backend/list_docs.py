@@ -5,7 +5,7 @@ def list_documents():
     db = SessionLocal()
     docs = db.query(models.Document).all()
     for doc in docs:
-        print(f"ID: {doc.id}, Filename: {doc.filename}, Uploaded By: {doc.uploaded_by}")
+        print(f"ID: {doc.id}, Filename: {doc.filename}, FileID: {doc.file_id}, Audience: {doc.audience}")
     db.close()
 
 if __name__ == "__main__":

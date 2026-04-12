@@ -17,15 +17,15 @@ def fix_db():
             else:
                 print("file_id column already exists.")
                 
-            # Check if audience exists
-            res = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'audience'"))
+            # Check if allow_display exists
+            res = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'documents' AND column_name = 'allow_display'"))
             if not res.fetchone():
-                print("Adding audience column...")
-                conn.execute(text("ALTER TABLE documents ADD COLUMN audience VARCHAR DEFAULT 'all';"))
+                print("Adding allow_display column...")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN allow_display BOOLEAN DEFAULT TRUE;"))
                 conn.commit()
-                print("Added audience column.")
+                print("Added allow_display column.")
             else:
-                print("audience column already exists.")
+                print("allow_display column already exists.")
         except Exception as e:
             print(f"Error: {e}")
 

@@ -61,13 +61,20 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
     context_chunks = []
     for r in results:
         if not r.document: continue
-        doc_info = f"[DOCUMENT: {r.document.filename}]"
-        if r.document.file_id and r.document.allow_display:
+        
+        # Determine if this document has an associated file or is just text knowledge
+        has_file = bool(r.document.file_id)
+        doc_type = "FILE" if has_file else "TEXT_KNOWLEDGE"
+        
+        doc_info = f"[DOCUMENT: {r.document.filename} (Type: {doc_type})]"
+        
+        if has_file and r.document.allow_display:
             if use_supabase:
                 # Use backend proxy URL for signed access (works with private/RLS buckets)
                 doc_info += f" (URL: /api/file/{r.document.file_id})"
             else:
-                doc_info += f" (URL: /api/uploads/{r.document.file_id})"
+                doc_info += f" (URL: /api/file/{r.document.file_id})" # Standard fallback path
+        
         context_chunks.append(f"{doc_info}\n{r.content}")
     
     context = "\n\n".join(context_chunks)
@@ -78,23 +85,20 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
 Your goal is to assist students and staff in a friendly, approachable, and engaging manner.
 
 ### YOUR PERSONALITY RULES:
-1. **Directness**: Avoid generic, repetitive greetings like "Hello there", "Hey there", or "How can I help you today?". Get straight to the point or provide the information immediately.
-2. **Conversational Tone**: Use a warm, friendly, and natural conversational style. Think of yourself as a knowledgeable and enthusiastic peer or mentor.
-3. **Engaging**: Use transition phrases and helpful closing remarks to make the interaction feel human, but skip unnecessary preamble.
-4. **Structured yet Narrative**: While you should still use lists or bullet points to present key facts clearly, wrap them in a friendly conversational narrative. 
-5. **Knowledgeable**: You know your campus facts cold. Be confident and helpful.
-6. **Honest and Transparent**: If information isn't in the knowledge base, be upfront about it, perhaps with a helpful suggestion or a friendly "I wish I knew that!" tone. State: "I'm sorry, I don't have that specific information in my files right now."
-7. **Supportive**: Always aim to be as helpful as possible, guiding the user through campus life.
-8. **Language rule**: 
-   - Default: Friendly and professional English.
-   - If the user writes in Tamil or Tanglish, seamlessly switch to a warm and conversational Tanglish style.
-9. **Visual Content**: You have access to images and PDF documents via associated URLs (found in the context markers like (URL: ...)). 
-   - **CRITICAL**: ONLY display an image or a PDF if the user explicitly asks for it (e.g., "Show me the map", "Send me the PDF", "I want to see the image"). 
-   - DO NOT automatically include visual content in every response, even if it is relevant. Wait for a specific request for visual aids.
-   - For IMAGES (png, jpg, jpeg, webp): Use markdown syntax: ![Description](URL) (e.g., ![Campus Map](/api/uploads/xyz.png) or ![Map](https://xyz.supabase.co/storage/v1/object/public/documents/abc.png))
-   - For DOCUMENTS (pdf): Use markdown syntax: [Link Text](URL) (e.g., [View Fee Structure PDF](/api/uploads/xyz.pdf) or [PDF](https://xyz.supabase.co/storage/v1/object/public/documents/abc.pdf))
-   - **IMPORTANT**: Only use the exact URLs provided in the context markers (starting with /api/uploads/ or a full https:// supabase link). Do NOT guess or hallucinate URLs if they are not explicitly present in the knowledge base context for a specific document.
-10. **No Emojis**: Do not use any emojis in your response.
+1. **Directness**: Avoid generic, repetitive greetings. Get straight to the point.
+2. **Conversational Tone**: Use a warm, friendly style (like a helpful mentor).
+3. **Structured yet Narrative**: Use lists/bullets but wrap them in narrative.
+4. **No Emojis**: Do not use any emojis in your response.
+5. **Language**: Default English. Tamil/Tanglish if the user uses them.
+
+### VISUAL & FILE CONTENT RULES:
+- You have access to images and PDF documents via associated URLs found in the markers like `(URL: ...)`.
+- **CRITICAL**: ONLY include a link or image if the user explicitly asks for it (e.g., "Show me the map", "Send me the PDF").
+- **STRICT URL POLICY**: 
+  - ONLY use URLs explicitly provided in the context markers (e.g., `/api/file/...`).
+  - If a document is marked as `Type: TEXT_KNOWLEDGE` or does NOT have a `(URL: ...)` marker, it is a text snippet and has NO downloadable file. 
+  - **DO NOT** guess, hallucinate, or construct URLs (like `/api/file/filename.pdf`) for documents that don't have an explicit URL in the context.
+  - If a user asks for a file that doesn't have a URL, say: "I have the information for that document, but the original file is not available for download right now."
 
 --- CAMPUS KNOWLEDGE BASE ---
 {context}
