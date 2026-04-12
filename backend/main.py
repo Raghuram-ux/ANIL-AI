@@ -72,6 +72,41 @@ app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 def read_root():
     return {"message": "College Chatbot API is running"}
 
+@app.get("/fix-database-sync")
+def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
+    """Internal utility to resolve broken records and recover admin user."""
+    res = {"status": "success", "updates": {}}
+    
+    # 1. Recover Admin if missing
+    admin_created = seed_admin_if_missing(db)
+    res["updates"]["admin"] = "Created" if admin_created else "Verified (Already exists)"
+    
+    # 2. Sync Files if Supabase is configured
+    if _supabase_client:
+        try:
+            files = _supabase_client.storage.from_("documents").list()
+            file_list = [f['name'] for f in files]
+            docs = db.query(models.Document).all()
+            updated_count = 0
+            
+            for doc in docs:
+                # If file_id is missing, or it's not present in the actual storage bucket
+                if not doc.file_id or doc.file_id == "None" or doc.file_id not in file_list:
+                    # Try to find the best match by filename
+                    match = next((name for name in file_list if doc.filename in name), None)
+                    if match:
+                        doc.file_id = match
+                        updated_count += 1
+            
+            db.commit()
+            res["updates"]["files_synced"] = updated_count
+        except Exception as e:
+            res["updates"]["files_error"] = str(e)
+    else:
+        res["updates"]["files_status"] = "Skipped (Supabase not configured)"
+        
+    return res
+
 def seed_admin_if_missing(db: SessionLocal):
     # Ensure tables are created
     models.Base.metadata.create_all(bind=database.engine)
@@ -149,32 +184,6 @@ def serve_file_public(file_id: str):
 
     raise HTTPException(status_code=404, detail="File could not be resolved in storage")
 
-@app.get("/api/admin/fix-database-sync")
-def fix_database_sync(db: database.SessionLocal = Depends(database.get_db)):
-    """Internal utility to resolve broken records and recover admin user."""
-    res = {"status": "success", "updates": {}}
-    
-    # 1. Recover Admin if missing
-    admin_created = seed_admin_if_missing(db)
-    res["updates"]["admin"] = "Created" if admin_created else "Verified (Already exists)"
-    
-    # 2. Sync Files if Supabase is configured
-    if _supabase_client:
-        try:
-            files = _supabase_client.storage.from_("documents").list()
-            file_list = [f['name'] for f in files]
-            docs = db.query(models.Document).all()
-            updated_count = 0
-            
-            for doc in docs:
-                if not doc.file_id or doc.file_id == "None" or doc.file_id not in file_list:
-                    match = next((name for name in file_list if doc.filename in name), None)
-                    if match:
-                        doc.file_id = match
-                        updated_count += 1
-            
-            db.commit()
-            res["updates"]["files_synced"] = updated_count
         except Exception as e:
             res["updates"]["files_error"] = str(e)
     else:
