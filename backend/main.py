@@ -93,6 +93,9 @@ def seed_admin_if_missing(db: Session):
     return False
 
 @app.get("/fix-database-sync")
+@app.get("/fix")
+@app.get("/api/fix")
+@app.get("/repair")
 def fix_database_sync(db: Session = Depends(database.get_db)):
     """Internal utility to resolve broken records and recover admin user."""
     res = {"status": "success", "updates": {}}
@@ -129,6 +132,11 @@ def fix_database_sync(db: Session = Depends(database.get_db)):
         res["updates"]["files_status"] = "Skipped (Supabase not configured)"
         
     return res
+
+@app.get("/debug-routes")
+def list_routes():
+    """Lists all active routes for server debugging."""
+    return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.routes if hasattr(route, 'path')]
 
 # Initialize Supabase client
 SUPABASE_URL = os.getenv("SUPABASE_URL")
