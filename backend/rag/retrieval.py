@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 import models
 import os
+import urllib.parse
 
 async def generate_answer(db: Session, query: str, user_role: str = "student") -> dict:
     mock_mode = os.getenv("MOCK_LLM", "false").lower() == "true"
@@ -70,8 +71,9 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
         
         if has_file and r.document.allow_display:
             # Use backend proxy URL for signed access (works with private/RLS buckets)
-            # Formatting as (FILE_PATH: /api/file/...) to prevent LLM confusion
-            doc_info += f" (FILE_PATH: /api/file/{r.document.file_id})"
+            # URL-encode the file_id to prevent markdown issues with characters like ()
+            safe_file_id = urllib.parse.quote(r.document.file_id)
+            doc_info += f" (FILE_PATH: /api/file/{safe_file_id})"
         
         context_chunks.append(f"{doc_info}\n{r.content}")
     

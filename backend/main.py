@@ -12,6 +12,7 @@ import models
 from routers import auth, documents, chat, settings
 import os
 import requests as http_requests
+import urllib.parse
 
 from sqlalchemy import text
 
@@ -92,6 +93,8 @@ if SUPABASE_URL and _sb_key:
 @app.get("/api/file/{file_id:path}")
 def serve_file_public(file_id: str):
     """Public proxy: serves uploaded files via Supabase signed URL or local disk."""
+    # Unquote the file_id in case it was URL-encoded (e.g. for parentheses or spaces)
+    file_id = urllib.parse.unquote(file_id)
     print(f"DEBUG: public file serve request for file_id: {file_id}")
     if _supabase_client:
         try:
