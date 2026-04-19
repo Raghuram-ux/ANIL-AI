@@ -283,24 +283,6 @@ export default function Chat() {
             <h1 className="text-base md:text-lg font-bold text-[var(--foreground)] tracking-tight">Campus Support</h1>
           </div>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                const newState = !voiceEnabled;
-                setVoiceEnabled(newState);
-                if (!newState) {
-                  window.speechSynthesis.cancel();
-                  if (audioRef.current) {
-                    audioRef.current.pause();
-                    audioRef.current = null;
-                  }
-                  setVoiceState('idle');
-                }
-              }}
-              className={`p-2 rounded-lg transition-all ${voiceEnabled ? 'bg-amber-500/10 text-amber-500' : 'text-[var(--foreground)] opacity-30 hover:opacity-100'}`}
-              title={voiceEnabled ? "Turn off voice" : "Turn on voice"}
-            >
-              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-            </button>
             {messages.length > 0 && (
               <button 
                 onClick={clearChat}
@@ -555,6 +537,27 @@ export default function Chat() {
               title="Enter Voice Mode"
             >
               <Mic className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+            {/* The Mute button (Voice Toggle) */}
+            <button
+              type="button"
+              onClick={() => {
+                const newState = !voiceEnabled;
+                setVoiceEnabled(newState);
+                if (!newState) {
+                  window.speechSynthesis.cancel();
+                  if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current = null;
+                  }
+                  setVoiceState('idle');
+                }
+              }}
+              className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-full transition-all shrink-0 shadow-sm ${voiceEnabled ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' : 'bg-[var(--secondary)] text-[var(--foreground)] opacity-30 hover:opacity-100 hover:bg-[var(--border)]'}`}
+              title={voiceEnabled ? "Turn off voice" : "Turn on voice"}
+              disabled={isLoading}
+            >
+              {voiceEnabled ? <Volume2 className="w-4 h-4 md:w-5 md:h-5" /> : <VolumeX className="w-4 h-4 md:w-5 md:h-5" />}
             </button>
             <button 
               type="submit" 
