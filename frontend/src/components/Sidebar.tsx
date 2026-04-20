@@ -86,13 +86,11 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <div className="p-6 pb-2 overflow-y-auto">
           <div className="flex items-center justify-between mb-8 w-full ">
             <div className="flex-1 shrink-0">
-              <div className={`transition-all duration-300 ${darkMode ? 'bg-white/90 p-3 rounded-2xl shadow-[0_0_15px_rgba(255,255,255,0.1)]' : ''}`}>
-                <img 
-                  src={darkMode ? "/banner-lunar.jpg" : "/banner-solar.jpg"} 
-                  alt="RIT Banner" 
-                  className="w-full max-w-[200px] h-auto object-contain mx-auto"
-                />
-              </div>
+              <img 
+                src={darkMode ? "/banner-solar.jpg" : "/banner-solar.jpg"} 
+                alt="RIT Banner" 
+                className={`w-full max-w-[200px] h-auto object-contain mx-auto transition-all duration-300 ${darkMode ? 'invert mix-blend-screen opacity-90' : ''}`}
+              />
             </div>
             {/* Close button for mobile */}
             <button 

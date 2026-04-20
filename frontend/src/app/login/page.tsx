@@ -50,9 +50,11 @@ export default function Login() {
   return (
     <div className="max-w-md mx-auto mt-12 bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
       <div className="bg-blue-900 p-6 text-center text-white">
-        <div className="bg-white/90 p-3 rounded-2xl inline-block mb-2 shadow-lg">
-          <img src="/banner-lunar.jpg" alt="RIT Banner" className="h-16 mx-auto object-contain" />
-        </div>
+        <img 
+          src="/banner-solar.jpg" 
+          alt="RIT Banner" 
+          className="h-16 mx-auto mb-2 object-contain invert mix-blend-screen opacity-90" 
+        />
         <h2 className="text-xl font-serif font-bold mt-2">{isRegistering ? 'Student/Staff Enrollment' : 'Campus Portal Login'}</h2>
       </div>
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
