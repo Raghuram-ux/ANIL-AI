@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import api from '@/lib/api';
-import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones, MapPin, Clock, Calendar, CreditCard, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Send, BookOpen, User, Trash2, Sparkles, Mic, MicOff, Volume2, VolumeX, Headphones, MapPin, Clock, Calendar, CreditCard, ChevronRight, ShieldCheck, X } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 
 const ELEVENLABS_VOICES: Record<string, string> = {
@@ -36,6 +36,7 @@ export default function Chat() {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [voiceState, setVoiceState] = useState<'idle'|'listening'|'processing'|'speaking'>('idle');
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<{url: string, type: 'pdf'|'image'|'web'} | null>(null);
   
   // Admin Global Voice Setup
   const [globalVoiceName, setGlobalVoiceName] = useState("");
@@ -273,8 +274,9 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300">
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-[var(--background)] transition-all">
+    <div className="flex flex-row h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] w-full gap-4 transition-all duration-300">
+      <div className={`flex flex-col bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300 ${selectedDocument ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-[var(--background)] transition-all">
         <div className="flex justify-between items-center mb-4 md:mb-6 border-b border-[var(--border)] pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-1.5 md:p-2 bg-[var(--primary)] rounded-lg shadow-lg shadow-[#1e62ff]/20">
@@ -417,13 +419,18 @@ export default function Chat() {
                       }
 
                       const isPdf = path.toLowerCase().endsWith('.pdf');
+                      const isImage = finalUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null;
                       return (
                         <a 
                           key={idx} 
                           href={finalUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all my-1 ${
+                          onClick={(e) => {
+                             e.preventDefault();
+                             setSelectedDocument({ url: finalUrl, type: isPdf ? 'pdf' : isImage ? 'image' : 'web' });
+                          }}
+                          className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all my-1 cursor-pointer ${
                             isPdf 
                               ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white' 
                               : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)] hover:text-white shadow-sm'
@@ -568,7 +575,40 @@ export default function Chat() {
             </button>
           </form>
         )}
-      </div>
+      </div></div>
+
+      {/* Right Split: Document Viewer */}
+      {selectedDocument && (
+        <div className={`flex flex-col bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300 w-full md:w-1/2`}>
+          <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--card)]">
+            <div className="flex items-center space-x-2">
+              <div className="p-1.5 bg-red-500/10 rounded-lg">
+                <BookOpen className="w-4 h-4 text-red-500" />
+              </div>
+              <span className="font-bold text-sm tracking-tight text-[var(--foreground)]">Document Viewer</span>
+            </div>
+            <button 
+              onClick={() => setSelectedDocument(null)}
+              className="p-1.5 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:bg-[var(--secondary)] rounded-md transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 bg-[var(--background)] relative p-2 md:p-4">
+             {selectedDocument.type === 'pdf' && (
+               <iframe src={selectedDocument.url} className="w-full h-full rounded-lg border border-[var(--border)] bg-white" title="PDF Document" />
+             )}
+             {selectedDocument.type === 'image' && (
+               <div className="w-full h-full flex items-center justify-center p-4">
+                 <img src={selectedDocument.url} alt="Document View" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+               </div>
+             )}
+             {selectedDocument.type === 'web' && (
+               <iframe src={selectedDocument.url} className="w-full h-full rounded-lg border border-[var(--border)] bg-white" title="Web Document" />
+             )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
