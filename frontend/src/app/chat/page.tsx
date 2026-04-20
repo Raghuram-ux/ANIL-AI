@@ -26,6 +26,43 @@ const TEACHER_RECOMMENDATIONS = [
   { title: "University HR", query: "Provide details on university staff policies.", icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10" }
 ];
 
+const FluidWaveform = ({ state }: { state: 'idle'|'listening'|'processing'|'speaking' }) => {
+  let colors = { blob1: '', blob2: '' };
+  let scale = 'scale-100';
+  let speedClasses1 = 'mesh-orb-1';
+  let speedClasses2 = 'mesh-orb-2';
+
+  if (state === 'listening') {
+    colors = { blob1: 'bg-cyan-400', blob2: 'bg-blue-500' };
+    scale = 'scale-150';
+  } else if (state === 'speaking') {
+    colors = { blob1: 'bg-amber-400', blob2: 'bg-orange-500' };
+    scale = 'scale-125';
+  } else if (state === 'processing') {
+    colors = { blob1: 'bg-slate-300', blob2: 'bg-slate-400' };
+    scale = 'scale-100';
+    speedClasses1 = 'mesh-orb-1 [animation-duration:12s]';
+    speedClasses2 = 'mesh-orb-2 [animation-duration:14s]';
+  } else {
+    // idle
+    colors = { blob1: 'bg-blue-400', blob2: 'bg-indigo-400' };
+    scale = 'scale-50 opacity-40';
+  }
+
+  return (
+    <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-1000 ease-in-out ${scale}`}>
+      {/* Siri-style container with stark blur */}
+      <div className="relative w-24 h-24 md:w-32 md:h-32 blur-xl opacity-90 orb-pulse">
+         <div className={`absolute inset-0 rounded-full ${speedClasses1} opacity-70 ${colors.blob1} transition-colors duration-1000`}></div>
+         <div className={`absolute inset-0 rounded-full ${speedClasses2} opacity-70 ${colors.blob2} transition-colors duration-1000`}></div>
+         {/* Center bright core */}
+         <div className={`absolute inset-4 rounded-full bg-white dark:bg-white/50 opacity-60 blur-md transition-colors duration-1000`}></div>
+      </div>
+    </div>
+  );
+};
+
+
 export default function Chat() {
   const { messages, setMessages, clearChat } = useChat();
   const [input, setInput] = useState('');
@@ -475,17 +512,7 @@ export default function Chat() {
         
         {isVoiceMode ? (
           <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-[var(--secondary)] rounded-3xl animate-in slide-in-from-bottom-10 fade-in duration-500 relative overflow-hidden h-40 md:h-32">
-             {/* Animations based on state */}
-             {voiceState === 'listening' && (
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 md:w-20 h-16 md:h-20 bg-blue-500/20 rounded-full animate-ping"></div>
-               </div>
-             )}
-             {voiceState === 'speaking' && (
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 md:w-24 h-20 md:h-24 bg-amber-500/20 rounded-full animate-pulse transition-all duration-75"></div>
-               </div>
-             )}
+             <FluidWaveform state={voiceState} />
              
              <div className="relative z-10 flex items-center justify-between w-full">
                 <button 

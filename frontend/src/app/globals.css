@@ -78,3 +78,31 @@ h1, h2, h3, h4, .font-serif {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+@keyframes orb-spin-1 {
+  0% { transform: rotate(0deg) scale(1) translate(10%, 10%); }
+  33% { transform: rotate(120deg) scale(1.1) translate(-10%, 20%); }
+  66% { transform: rotate(240deg) scale(0.9) translate(20%, -10%); }
+  100% { transform: rotate(360deg) scale(1) translate(10%, 10%); }
+}
+
+@keyframes orb-spin-2 {
+  0% { transform: rotate(0deg) scale(1.1) translate(-15%, -10%); }
+  33% { transform: rotate(-120deg) scale(0.9) translate(10%, -20%); }
+  66% { transform: rotate(-240deg) scale(1) translate(-20%, 10%); }
+  100% { transform: rotate(-360deg) scale(1.1) translate(-15%, -10%); }
+}
+
+@keyframes orb-pulse-slow {
+  0%, 100% { transform: scale(0.95); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.mesh-orb-1 {
+  animation: orb-spin-1 6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mesh-orb-2 {
+  animation: orb-spin-2 7s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+.orb-pulse {
+  animation: orb-pulse-slow 4s infinite ease-in-out;
+}
