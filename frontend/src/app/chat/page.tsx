@@ -26,6 +26,103 @@ const TEACHER_RECOMMENDATIONS = [
   { title: "University HR", query: "Provide details on university staff policies.", icon: ShieldCheck, color: "text-emerald-500", bg: "bg-emerald-500/10" }
 ];
 
+const MarkdownRenderer = ({ content, onLinkClick }: { content: string, onLinkClick: (url: string, type: 'pdf'|'image'|'web') => void }) => {
+  return (
+    <div className="whitespace-pre-wrap leading-relaxed transition-colors text-sm md:text-base">
+      {content.split(/(!\[.*?\]\(.*?\)|\[.*?\]\(.*?\))/g).map((chunk, idx) => {
+        if (chunk.startsWith('![')) {
+          const match = chunk.match(/!\[(.*?)\]\((.*?)\)/);
+          if (match) {
+            const [, alt, path] = match;
+            const isAbsolute = path.startsWith('http');
+            let finalUrl = path;
+            if (!isAbsolute) {
+              const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+              const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+              finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+            }
+            return (
+              <div key={idx} className="my-4 group relative">
+                <img 
+                  src={finalUrl} 
+                  alt={alt} 
+                  className="max-w-full rounded-2xl shadow-xl shadow-blue-500/10 border border-[var(--border)] hover:scale-[1.02] transition-transform duration-500" 
+                />
+                <div className="mt-2 text-[10px] uppercase font-bold text-[var(--foreground)] opacity-40 text-center tracking-widest">{alt || 'Campus Visual'}</div>
+              </div>
+            );
+          }
+        } else if (chunk.startsWith('[')) {
+          const match = chunk.match(/\[(.*?)\]\((.*?)\)/);
+          if (match) {
+            const [, text, path] = match;
+            const isAbsolute = path.startsWith('http');
+            let finalUrl = path;
+            if (!isAbsolute) {
+              const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+              const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+              finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
+            }
+            const isPdf = path.toLowerCase().endsWith('.pdf');
+            const isImage = finalUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null;
+            return (
+              <a 
+                key={idx} 
+                href={finalUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                   e.preventDefault();
+                   onLinkClick(finalUrl, isPdf ? 'pdf' : isImage ? 'image' : 'web');
+                }}
+                className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all my-1 cursor-pointer ${
+                  isPdf 
+                    ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white' 
+                    : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)] hover:text-white shadow-sm'
+                }`}
+              >
+                {isPdf && <BookOpen className="w-3.5 h-3.5 mr-2" />}
+                {text}
+              </a>
+            );
+          }
+        }
+        return <span key={idx}>{chunk}</span>;
+      })}
+    </div>
+  );
+};
+
+const TypewriterText = ({ text, speed = 5, onUpdate, onComplete, onLinkClick }: { text: string, speed?: number, onUpdate?: () => void, onComplete?: () => void, onLinkClick: (url: string, type: 'pdf'|'image'|'web') => void }) => {
+  const [displayedText, setDisplayedText] = useState("");
+  
+  useEffect(() => {
+    let index = 0;
+    const interval = setInterval(() => {
+      let nextIndex = index + 1;
+      // Skip over markdown tags to avoid broken visuals
+      if (text[index] === '[' || (text[index] === '!' && text[index+1] === '[')) {
+        const closingParen = text.indexOf(')', index);
+        if (closingParen !== -1) {
+          nextIndex = closingParen + 1;
+        }
+      }
+      const newText = text.slice(0, nextIndex);
+      setDisplayedText(newText);
+      onUpdate?.();
+      index = nextIndex;
+      if (index >= text.length) {
+        clearInterval(interval);
+        onComplete?.();
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return <MarkdownRenderer content={displayedText} onLinkClick={onLinkClick} />;
+};
+
+
 const FluidWaveform = ({ state }: { state: 'idle'|'listening'|'processing'|'speaking' }) => {
   let colors = { blob1: '', blob2: '' };
   let scale = 'scale-100';
@@ -352,10 +449,11 @@ export default function Chat() {
               {(userRole === 'faculty' ? TEACHER_RECOMMENDATIONS : STUDENT_RECOMMENDATIONS).map((rec, i) => (
                 <button
                   key={i}
+                  style={{ animationDelay: `${i * 100}ms` }}
                   onClick={() => {
                     handleSend(undefined, rec.query);
                   }}
-                  className="flex items-center p-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl text-left hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--primary)]/5 transition-all group relative overflow-hidden"
+                  className="flex items-center p-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl text-left hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--primary)]/5 transition-all group relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
                 >
                   <div className={`p-3 rounded-xl ${rec.bg} ${rec.color} mr-4 group-hover:scale-110 transition-transform`}>
                     <rec.icon className="w-5 h-5" />
@@ -414,74 +512,19 @@ export default function Chat() {
                 </div>
               )}
               
-              <div className="whitespace-pre-wrap leading-relaxed transition-colors text-sm md:text-base">
-                {msg.content.split(/(!\[.*?\]\(.*?\)|\[.*?\]\(.*?\))/g).map((chunk, idx) => {
-                  if (chunk.startsWith('![')) {
-                    // Match image: ![Alt](Path)
-                    const match = chunk.match(/!\[(.*?)\]\((.*?)\)/);
-                    if (match) {
-                      const [, alt, path] = match;
-                      const isAbsolute = path.startsWith('http');
-                      let finalUrl = path;
-                      
-                      if (!isAbsolute) {
-                        const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
-                        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
-                        finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
-                      }
-                      
-                      return (
-                        <div key={idx} className="my-4 group relative">
-                          <img 
-                            src={finalUrl} 
-                            alt={alt} 
-                            className="max-w-full rounded-2xl shadow-xl shadow-blue-500/10 border border-[var(--border)] hover:scale-[1.02] transition-transform duration-500" 
-                          />
-                          <div className="mt-2 text-[10px] uppercase font-bold text-[var(--foreground)] opacity-40 text-center tracking-widest">{alt || 'Campus Visual'}</div>
-                        </div>
-                      );
-                    }
-                  } else if (chunk.startsWith('[')) {
-                    // Match link: [Text](Path)
-                    const match = chunk.match(/\[(.*?)\]\((.*?)\)/);
-                    if (match) {
-                      const [, text, path] = match;
-                      const isAbsolute = path.startsWith('http');
-                      let finalUrl = path;
-                      
-                      if (!isAbsolute) {
-                        const encodedPath = path.startsWith('/') ? path.split('/').map(segment => encodeURIComponent(segment)).join('/') : '/' + path.split('/').map(segment => encodeURIComponent(segment)).join('/');
-                        const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
-                        finalUrl = `${baseUrl}${encodedPath.startsWith('/') ? encodedPath : '/' + encodedPath}`;
-                      }
-
-                      const isPdf = path.toLowerCase().endsWith('.pdf');
-                      const isImage = finalUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null;
-                      return (
-                        <a 
-                          key={idx} 
-                          href={finalUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={(e) => {
-                             e.preventDefault();
-                             setSelectedDocument({ url: finalUrl, type: isPdf ? 'pdf' : isImage ? 'image' : 'web' });
-                          }}
-                          className={`inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all my-1 cursor-pointer ${
-                            isPdf 
-                              ? 'bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white' 
-                              : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)] hover:text-white shadow-sm'
-                          }`}
-                        >
-                          {isPdf && <BookOpen className="w-3.5 h-3.5 mr-2" />}
-                          {text}
-                        </a>
-                      );
-                    }
-                  }
-                  return <span key={idx}>{chunk}</span>;
-                })}
-              </div>
+              {msg.role === 'assistant' && i === messages.length - 1 ? (
+                <TypewriterText 
+                  text={msg.content} 
+                  speed={2} 
+                  onUpdate={() => bottomRef.current?.scrollIntoView({ behavior: 'auto' })}
+                  onLinkClick={(url, type) => setSelectedDocument({ url, type })}
+                />
+              ) : (
+                <MarkdownRenderer 
+                  content={msg.content} 
+                  onLinkClick={(url, type) => setSelectedDocument({ url, type })}
+                />
+              )}
               
               {msg.role === 'assistant' && userRole === 'admin' && msg.sources && msg.sources.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-[var(--border)] opacity-80">
