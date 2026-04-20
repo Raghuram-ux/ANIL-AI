@@ -408,9 +408,9 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-row h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] w-full gap-4 transition-all duration-300">
-      <div className={`flex flex-col bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300 ${selectedDocument ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-[var(--background)] transition-all">
+    <div className="flex flex-row h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] w-full gap-4 transition-all duration-300 relative z-10">
+      <div className={`flex flex-col glass-card overflow-hidden transition-all duration-500 ${selectedDocument ? 'hidden md:flex md:w-1/2' : 'w-full'}`}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-transparent transition-all">
         <div className="flex justify-between items-center mb-4 md:mb-6 border-b border-[var(--border)] pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-1.5 md:p-2 bg-[var(--primary)] rounded-lg shadow-lg shadow-[#1e62ff]/20">
@@ -551,7 +551,7 @@ export default function Chat() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-4 bg-[var(--card)] border-t border-[var(--border)] transition-colors">
+      <div className="p-4 bg-transparent border-t border-[var(--border)] transition-colors">
         
         {isVoiceMode ? (
           <div className="flex flex-col items-center justify-center p-4 md:p-6 bg-[var(--secondary)] rounded-3xl animate-in slide-in-from-bottom-10 fade-in duration-500 relative overflow-hidden h-40 md:h-32">
@@ -649,8 +649,8 @@ export default function Chat() {
 
       {/* Right Split: Document Viewer */}
       {selectedDocument && (
-        <div className={`flex flex-col bg-[var(--card)] rounded-xl shadow-xl border border-[var(--border)] overflow-hidden transition-all duration-300 w-full md:w-1/2`}>
-          <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--card)]">
+        <div className={`flex flex-col glass-card overflow-hidden transition-all duration-500 w-full md:w-1/2`}>
+          <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-white/10 backdrop-blur-md">
             <div className="flex items-center space-x-2">
               <div className="p-1.5 bg-red-500/10 rounded-lg">
                 <BookOpen className="w-4 h-4 text-red-500" />
@@ -659,12 +659,12 @@ export default function Chat() {
             </div>
             <button 
               onClick={() => setSelectedDocument(null)}
-              className="p-1.5 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:bg-[var(--secondary)] rounded-md transition-all"
+              className="p-1.5 text-[var(--foreground)] opacity-60 hover:opacity-100 hover:bg-white/10 rounded-md transition-all"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex-1 bg-[var(--background)] relative p-2 md:p-4">
+          <div className="flex-1 bg-transparent relative p-2 md:p-4">
              {selectedDocument.type === 'pdf' && (
                <iframe src={selectedDocument.url} className="w-full h-full rounded-lg border border-[var(--border)] bg-white" title="PDF Document" />
              )}

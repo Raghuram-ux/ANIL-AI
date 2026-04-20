@@ -18,7 +18,7 @@
   --primary-foreground: #ffffff;
   --secondary: #f4f7fa;
   --accent: #f59e0b;
-  --glass: rgba(255, 255, 255, 0.7);
+  --glass: rgba(255, 255, 255, 0.45);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --ring: 0 0 0 2px rgba(30, 98, 255, 0.1);
 }
@@ -32,7 +32,7 @@
   --primary-foreground: #ffffff;
   --secondary: #111827;
   --accent: #fbbf24;
-  --glass: rgba(11, 15, 26, 0.8);
+  --glass: rgba(11, 15, 26, 0.55);
   --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 10px -2px rgba(30, 98, 255, 0.05);
   --ring: 0 0 0 2px rgba(30, 98, 255, 0.2);
 }
@@ -42,16 +42,11 @@ body {
   color: var(--foreground);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  background-image: 
-    radial-gradient(circle at 100% 0%, rgba(30, 98, 255, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 0% 100%, rgba(245, 158, 11, 0.02) 0%, transparent 40%);
   background-attachment: fixed;
 }
 
 .dark body {
-  background-image: 
-    radial-gradient(circle at 100% 0%, rgba(30, 98, 255, 0.08) 0%, transparent 35%),
-    radial-gradient(circle at 0% 100%, rgba(251, 191, 36, 0.03) 0%, transparent 35%);
+  /* mesh handles this now */
 }
 
 
@@ -67,15 +62,55 @@ h1, h2, h3, h4, .font-serif {
 
 .glass-card {
   background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .glass-card:hover {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-card:hover {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.mesh-blob {
+  position: fixed;
+  filter: blur(80px);
+  z-index: -1;
+  opacity: 0.2;
+  pointer-events: none;
+  border-radius: 50%;
+  mix-blend-mode: multiply;
+  transition: opacity 1s ease;
+}
+
+.dark .mesh-blob {
+  opacity: 0.15;
+  mix-blend-mode: screen;
+}
+
+@keyframes mesh-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(15%, -10%) scale(1.2); }
+}
+
+@keyframes mesh-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  50% { transform: translate(-10%, 15%) scale(0.9); }
+}
+
+@keyframes mesh-float-3 {
+  0%, 100% { transform: translate(0, 0) scale(0.9); }
+  50% { transform: translate(5%, -20%) scale(1.1); }
 }
 
 @keyframes orb-spin-1 {

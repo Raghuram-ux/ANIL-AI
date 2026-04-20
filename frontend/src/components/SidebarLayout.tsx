@@ -20,9 +20,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   return (
     <ChatProvider>
-      <div className="flex flex-col md:flex-row min-h-screen bg-[var(--background)] transition-colors duration-300">
+      <div className="flex flex-col md:flex-row min-h-screen bg-transparent transition-colors duration-300 relative z-10">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--card)] sticky top-0 z-40">
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-[var(--border)] glass-card sticky top-0 z-40 rounded-none border-x-0 border-t-0 shadow-none">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
               <span className="text-white font-black text-xs">RIT</span>

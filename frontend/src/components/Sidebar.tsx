@@ -79,8 +79,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       <div className={`
         fixed md:sticky top-0 left-0 z-50 md:z-0
-        w-72 md:w-64 bg-[var(--secondary)] border-r border-[var(--border)] 
-        flex flex-col h-screen shrink-0 transition-all duration-300
+        w-72 md:w-64 glass-card
+        flex flex-col h-screen shrink-0 transition-all duration-500
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="p-6 pb-2 overflow-y-auto">
