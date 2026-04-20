@@ -84,18 +84,18 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="p-6 pb-2 overflow-y-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-3">
-              <Squirrel className="w-8 h-8 text-[var(--primary)]" />
-              <div>
-                <h1 className="font-extrabold text-xl text-[var(--foreground)] leading-tight tracking-tighter">RIT</h1>
-                <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--foreground)] opacity-40">Intelligence Portal</p>
-              </div>
+          <div className="flex items-center justify-between mb-8 w-full ">
+            <div className="flex-1 shrink-0">
+              <img 
+                src={darkMode ? "/banner-lunar.jpg" : "/banner-solar.jpg"} 
+                alt="RIT Banner" 
+                className="w-full max-w-[200px] h-auto object-contain transition-all duration-300"
+              />
             </div>
             {/* Close button for mobile */}
             <button 
               onClick={onClose}
-              className="md:hidden p-2 text-[var(--foreground)] opacity-60 hover:opacity-100"
+              className="md:hidden p-2 text-[var(--foreground)] opacity-60 hover:opacity-100 shrink-0"
             >
               <X className="w-6 h-6" />
             </button>
