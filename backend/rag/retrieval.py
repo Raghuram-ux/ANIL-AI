@@ -152,8 +152,17 @@ async def generate_answer_stream(db: Session, query: str, user_role: str = "stud
     context_chunks = []
     for r in results:
         if not r.document: continue
-        safe_file_id = urllib.parse.quote(r.document.file_id) if r.document.file_id else ""
-        doc_info = f"[DOCUMENT: {r.document.filename}] (FILE_PATH: /api/file/{safe_file_id})" if safe_file_id else f"[DOCUMENT: {r.document.filename}]"
+        
+        # Determine if this document has an associated file or is just text knowledge
+        has_file = bool(r.document.file_id)
+        doc_type = "FILE" if has_file else "TEXT_KNOWLEDGE"
+        
+        doc_info = f"[DOCUMENT: {r.document.filename} (Type: {doc_type})]"
+        
+        if has_file and r.document.allow_display:
+            safe_file_id = urllib.parse.quote(r.document.file_id)
+            doc_info += f" (FILE_PATH: /api/file/{safe_file_id})"
+        
         context_chunks.append(f"{doc_info}\n{r.content}")
     
     context = "\n\n".join(context_chunks)
@@ -163,12 +172,36 @@ async def generate_answer_stream(db: Session, query: str, user_role: str = "stud
     import json
     yield f"data: {json.dumps({'sources': sources})}\n\n"
 
-    prompt = f"""You are Laxx, a helpful campus companion. 
-RULES: Warm tone, no emojis, structured narrative.
-CONTEXT:
+    prompt = f"""You are Laxx, a helpful and highly conversational campus companion for this university. 
+Your goal is to assist students and staff in a friendly, approachable, and engaging manner.
+
+### YOUR PERSONALITY RULES:
+1. **Directness**: Avoid generic, repetitive greetings. Get straight to the point.
+2. **Conversational Tone**: Use a warm, friendly style (like a helpful mentor).
+3. **Structured yet Narrative**: Use lists/bullets but wrap them in narrative.
+4. **No Emojis**: Do not use any emojis in your response.
+5. **Language**: Default English. Tamil/Tanglish if the user uses them.
+
+### VISUAL & FILE CONTENT RULES:
+- You have access to images and PDF documents via associated URLs found in the markers like `(FILE_PATH: ...)`.
+- **CRITICAL**: ONLY include a link or image if the user explicitly asks for it (e.g., "Show me the map", "Send me the PDF").
+- **STRICT URL POLICY**: 
+  - ONLY use the path provided *after* `FILE_PATH: ` inside the parentheses (e.g., `/api/file/xyz.pdf`).
+  - **DO NOT** include the string "FILE_PATH: " or "URL: " in your markdown links. 
+  - **Correct format**: `[View Document](/api/file/abc.pdf)`
+  - **Incorrect format**: `[View Document](FILE_PATH: /api/file/abc.pdf)` or `[View Document](URL: /api/file/abc.pdf)`
+  - If a document is marked as `Type: TEXT_KNOWLEDGE` or does NOT have a `(FILE_PATH: ...)` marker, it is a text snippet and has NO downloadable file. 
+  - **DO NOT** guess, hallucinate, or construct paths if they are not explicitly present in the context.
+  - If a user asks for a file that doesn't have a path, say: "I have the information for that document, but the original file is not available for download right now."
+
+--- CAMPUS KNOWLEDGE BASE ---
 {context}
-QUERY: {query}
-RESPONSE:"""
+
+--- USER REQUEST ---
+{query}
+
+--- YOUR RESPONSE ---
+"""
 
     llm = ChatOpenAI(model_name="gpt-4o", temperature=0, openai_api_key=api_key, streaming=True)
     
