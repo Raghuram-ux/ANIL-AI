@@ -5,6 +5,7 @@ interface Message {
   role: string;
   content: string;
   sources?: string[];
+  suggestions?: string[];
 }
 
 interface ChatContextType {

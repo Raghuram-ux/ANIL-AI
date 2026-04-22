@@ -19,7 +19,9 @@ async def chat_with_bot(
     current_user: models.User = Depends(auth.get_current_user)
 ):
     try:
-        response_data = await generate_answer(db, request.query, current_user.role)
+        # history is expected to be a list of dicts with role and content
+        history_dicts = [h.dict() for h in request.history] if request.history else []
+        response_data = await generate_answer(db, request.query, current_user.role, history_dicts)
         
         # Save chat log
         chat_msg = models.ChatMessage(
@@ -53,7 +55,8 @@ async def chat_stream(
         full_answer = ""
         sources = []
         
-        async for chunk in generate_answer_stream(db, request.query, current_user.role):
+        history_dicts = [h.dict() for h in request.history] if request.history else []
+        async for chunk in generate_answer_stream(db, request.query, current_user.role, history_dicts):
             # Parse chunk if it's SSE format for logging
             if chunk.startswith("data: "):
                 data = json.loads(chunk[6:])

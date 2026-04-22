@@ -370,7 +370,10 @@ export default function Chat() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },
-        body: JSON.stringify({ query: userMessage })
+        body: JSON.stringify({ 
+          query: userMessage,
+          history: messages.map(m => ({ role: m.role, content: m.content }))
+        })
       });
 
       if (!response.ok) throw new Error('Network response was not ok');
@@ -407,9 +410,23 @@ export default function Chat() {
               
               if (data.token) {
                 fullContent += data.token;
+                
+                // Extract suggestions if they are appearing
+                let displayContent = fullContent;
+                let extractedSuggestions: string[] = [];
+                const suggestionMatch = fullContent.match(/\[SUGGESTIONS:\s*(.*?)\]/);
+                
+                if (suggestionMatch) {
+                   displayContent = fullContent.replace(/\[SUGGESTIONS:.*?\]/, '').trim();
+                   extractedSuggestions = suggestionMatch[1].split('|').map(s => s.trim()).filter(s => s);
+                }
+
                 setMessages(prev => {
                   const updated = [...prev];
-                  updated[updated.length - 1].content = fullContent;
+                  updated[updated.length - 1].content = displayContent;
+                  if (extractedSuggestions.length > 0) {
+                    updated[updated.length - 1].suggestions = extractedSuggestions;
+                  }
                   return updated;
                 });
                 bottomRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -417,7 +434,9 @@ export default function Chat() {
 
               if (data.done) {
                 setVoiceState('idle');
-                speak(fullContent);
+                // When speaking, we definitely want the cleaned version
+                const spokenText = fullContent.replace(/\[SUGGESTIONS:.*?\]/, '').trim();
+                speak(spokenText);
               }
             } catch (e) {
               // Ignore partial JSON or heartbeats
@@ -550,6 +569,20 @@ export default function Chat() {
                 </div>
               )}
               
+              {msg.role === 'assistant' && msg.suggestions && msg.suggestions.length > 0 && !isLoading && i === messages.length - 1 && (
+                <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
+                  {msg.suggestions.map((suggestion, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSend(undefined, suggestion)}
+                      className="px-3 py-1.5 bg-white/10 dark:bg-white/5 border border-white/20 hover:bg-white/20 rounded-full text-[10px] md:text-xs font-bold transition-all text-[var(--foreground)] opacity-80 hover:opacity-100 hover:scale-[1.02]"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {msg.role === 'assistant' && userRole === 'admin' && msg.sources && msg.sources.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-[var(--border)] opacity-80">
                   <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest mb-2">Campus Sources:</p>

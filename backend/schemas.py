@@ -35,8 +35,13 @@ class DocumentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ChatMessageSimple(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     query: str
+    history: Optional[List[ChatMessageSimple]] = []
 
 class ChatResponse(BaseModel):
     answer: str
