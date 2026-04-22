@@ -69,6 +69,56 @@ def get_global_chat_logs(
         
     return logs
 
+@router.get("/admin/analytics")
+def get_chat_analytics(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(auth.get_admin_user)
+):
+    from sqlalchemy import func, desc
+    from datetime import datetime, timedelta
+    import collections
+    import re
+
+    # 1. Queries per day (last 7 days)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    daily_counts = db.query(
+        func.date(models.ChatMessage.timestamp).label('date'),
+        func.count(models.ChatMessage.id).label('count')
+    ).filter(models.ChatMessage.timestamp >= seven_days_ago)\
+     .group_by(func.date(models.ChatMessage.timestamp))\
+     .order_by(func.date(models.ChatMessage.timestamp)).all()
+    
+    # 2. Top Keywords (simple word count from queries)
+    all_queries = db.query(models.ChatMessage.query).all()
+    words = []
+    stopwords = set(['what', 'is', 'the', 'a', 'an', 'and', 'how', 'to', 'can', 'i', 'of', 'for', 'in', 'on', 'with', 'me', 'show', 'tell', 'about', 'please', 'you', 'are', 'any', 'get'])
+    for q in all_queries:
+        # Clean and split words
+        q_words = re.findall(r'\w+', q[0].lower())
+        words.extend([w for w in q_words if w not in stopwords and len(w) > 2])
+    
+    top_keywords = collections.Counter(words).most_common(10)
+    
+    # 3. User distribution (by role)
+    role_counts = db.query(
+        models.User.role,
+        func.count(models.User.id)
+    ).group_by(models.User.role).all()
+
+    # 4. Total stats
+    total_messages = db.query(func.count(models.ChatMessage.id)).scalar()
+    total_users = db.query(func.count(models.User.id)).scalar()
+
+    return {
+        "daily_activity": [{"date": str(d.date), "count": d.count} for d in daily_counts],
+        "top_keywords": [{"text": k, "value": v} for k, v in top_keywords],
+        "role_distribution": {r: c for r, c in role_counts},
+        "stats": {
+            "total_messages": total_messages,
+            "total_users": total_users
+        }
+    }
+
 @router.get("/speech")
 def text_to_speech(text: str = Query(...), voice_id: str = Query("EXAVITQu4vr4xnSDxMaL")):
     api_key = os.getenv("ELEVENLABS_API_KEY")
