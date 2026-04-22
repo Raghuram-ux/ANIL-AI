@@ -40,6 +40,41 @@ async def chat_with_bot(
             f.write(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/stream")
+async def chat_stream(
+    request: schemas.ChatRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    from rag.retrieval import generate_answer_stream
+    import json
+
+    async def event_generator():
+        full_answer = ""
+        sources = []
+        
+        async for chunk in generate_answer_stream(db, request.query, current_user.role):
+            # Parse chunk if it's SSE format for logging
+            if chunk.startswith("data: "):
+                data = json.loads(chunk[6:])
+                if "token" in data:
+                    full_answer += data["token"]
+                if "sources" in data:
+                    sources = data["sources"]
+                if "done" in data:
+                    # Final log to DB
+                    chat_msg = models.ChatMessage(
+                        user_id=current_user.id,
+                        query=request.query,
+                        response=full_answer
+                    )
+                    db.add(chat_msg)
+                    db.commit()
+            
+            yield chunk
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 @router.get("/admin/logs")
 def get_global_chat_logs(
     username: str = Query(None, description="Filter logs by username"),

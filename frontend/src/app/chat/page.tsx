@@ -93,34 +93,7 @@ const MarkdownRenderer = ({ content, onLinkClick }: { content: string, onLinkCli
   );
 };
 
-const TypewriterText = ({ text, speed = 5, onUpdate, onComplete, onLinkClick }: { text: string, speed?: number, onUpdate?: () => void, onComplete?: () => void, onLinkClick: (url: string, type: 'pdf'|'image'|'web') => void }) => {
-  const [displayedText, setDisplayedText] = useState("");
-  
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      let nextIndex = index + 1;
-      // Skip over markdown tags to avoid broken visuals
-      if (text[index] === '[' || (text[index] === '!' && text[index+1] === '[')) {
-        const closingParen = text.indexOf(')', index);
-        if (closingParen !== -1) {
-          nextIndex = closingParen + 1;
-        }
-      }
-      const newText = text.slice(0, nextIndex);
-      setDisplayedText(newText);
-      onUpdate?.();
-      index = nextIndex;
-      if (index >= text.length) {
-        clearInterval(interval);
-        onComplete?.();
-      }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [text, speed]);
 
-  return <MarkdownRenderer content={displayedText} onLinkClick={onLinkClick} />;
-};
 
 
 const FluidWaveform = ({ state }: { state: 'idle'|'listening'|'processing'|'speaking' }) => {
@@ -390,14 +363,68 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      const res = await api.post('/chat', { query: userMessage });
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: res.data.answer,
-        sources: res.data.sources
-      }]);
-      // Speak the response 
-      speak(res.data.answer);
+      const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+      const response = await fetch(`${baseUrl}/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ query: userMessage })
+      });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      // Create a placeholder assistant message
+      setMessages(prev => [...prev, { role: 'assistant', content: '', sources: [] }]);
+      
+      let fullContent = "";
+      let currentSources: string[] = [];
+
+      while (reader) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.sources) {
+                currentSources = data.sources;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1].sources = currentSources;
+                  return updated;
+                });
+              }
+              
+              if (data.token) {
+                fullContent += data.token;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1].content = fullContent;
+                  return updated;
+                });
+                bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+              }
+
+              if (data.done) {
+                setVoiceState('idle');
+                speak(fullContent);
+              }
+            } catch (e) {
+              // Ignore partial JSON or heartbeats
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error(err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error communicating with the university servers.' }]);
@@ -512,18 +539,15 @@ export default function Chat() {
                 </div>
               )}
               
-              {msg.role === 'assistant' && i === messages.length - 1 ? (
-                <TypewriterText 
-                  text={msg.content} 
-                  speed={2} 
-                  onUpdate={() => bottomRef.current?.scrollIntoView({ behavior: 'auto' })}
-                  onLinkClick={(url, type) => setSelectedDocument({ url, type })}
-                />
-              ) : (
+              {msg.role === 'assistant' ? (
                 <MarkdownRenderer 
                   content={msg.content} 
                   onLinkClick={(url, type) => setSelectedDocument({ url, type })}
                 />
+              ) : (
+                <div className="whitespace-pre-wrap leading-relaxed text-sm md:text-base">
+                  {msg.content}
+                </div>
               )}
               
               {msg.role === 'assistant' && userRole === 'admin' && msg.sources && msg.sources.length > 0 && (

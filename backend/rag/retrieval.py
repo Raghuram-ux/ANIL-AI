@@ -121,3 +121,63 @@ Your goal is to assist students and staff in a friendly, approachable, and engag
         "answer": response.content,
         "sources": sources
     }
+
+async def generate_answer_stream(db: Session, query: str, user_role: str = "student"):
+    mock_mode = os.getenv("MOCK_LLM", "false").lower() == "true"
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not mock_mode and (not api_key or api_key == "your-openai-api-key-here"):
+        yield "data: {\"answer\": \"Error: Valid OpenAI API key missing.\", \"sources\": []}\n\n"
+        return
+
+    # Retrieval logic (duplicated from generate_answer for stability, but we could refactor later)
+    k = 10
+    embeddings_model = OpenAIEmbeddings(openai_api_key=api_key)
+    query_embedding = await embeddings_model.aembed_query(query)
+
+    query_builder = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+    if user_role == "student":
+        query_builder = query_builder.filter(models.Document.audience.in_(["all", "student"]))
+    elif user_role == "faculty":
+        query_builder = query_builder.filter(models.Document.audience.in_(["all", "faculty"]))
+
+    results = query_builder.order_by(
+        models.DocumentChunk.embedding.l2_distance(query_embedding)
+    ).limit(k).all()
+
+    if not results:
+        yield "data: {\"answer\": \"No campus records found.\", \"sources\": []}\n\n"
+        return
+
+    context_chunks = []
+    for r in results:
+        if not r.document: continue
+        safe_file_id = urllib.parse.quote(r.document.file_id) if r.document.file_id else ""
+        doc_info = f"[DOCUMENT: {r.document.filename}] (FILE_PATH: /api/file/{safe_file_id})" if safe_file_id else f"[DOCUMENT: {r.document.filename}]"
+        context_chunks.append(f"{doc_info}\n{r.content}")
+    
+    context = "\n\n".join(context_chunks)
+    sources = sorted(list(set([r.document.filename for r in results if r.document])))
+
+    # Yield sources first so UI can prepare
+    import json
+    yield f"data: {json.dumps({'sources': sources})}\n\n"
+
+    prompt = f"""You are Laxx, a helpful campus companion. 
+RULES: Warm tone, no emojis, structured narrative.
+CONTEXT:
+{context}
+QUERY: {query}
+RESPONSE:"""
+
+    llm = ChatOpenAI(model_name="gpt-4o", temperature=0, openai_api_key=api_key, streaming=True)
+    
+    full_response = ""
+    async for chunk in llm.astream(prompt):
+        content = chunk.content
+        if content:
+            full_response += content
+            yield f"data: {json.dumps({'token': content})}\n\n"
+    
+    # Final message to signify completion and provide full text for logging if needed
+    yield f"data: {json.dumps({'done': True, 'full_answer': full_response})}\n\n"
