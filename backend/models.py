@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Boolean
-from sqlalchemy.dialects.postgresql import UUID as psqlUUID
+from sqlalchemy.dialects.postgresql import UUID as psqlUUID, TSVECTOR
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 from database import Base
@@ -34,6 +34,7 @@ class DocumentChunk(Base):
     document_id = Column(psqlUUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1536))
+    search_vector = Column(TSVECTOR)
     
     document = relationship("Document", back_populates="chunks")
 

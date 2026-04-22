@@ -51,6 +51,36 @@ def run_migrations():
                 except Exception as e:
                     print(f"Migration error (allow_display): {e}")
 
+        # --- Hybrid Search Migrations (postgres full-text) ---
+        chunk_columns = [c['name'] for c in inspector.get_columns('document_chunks')]
+        if 'search_vector' not in chunk_columns:
+            print("Migration: Adding Hybrid Search support (tsvector)...")
+            try:
+                conn.execute(text("ALTER TABLE document_chunks ADD COLUMN search_vector tsvector;"))
+                conn.execute(text("CREATE INDEX idx_chunks_search_vector ON document_chunks USING GIN (search_vector);"))
+                
+                # Trigger for automatic updates
+                conn.execute(text("""
+                    CREATE OR REPLACE FUNCTION chunks_search_vector_update() RETURNS trigger AS $$
+                    BEGIN
+                        new.search_vector := to_tsvector('english', coalesce(new.content, ''));
+                        RETURN new;
+                    END
+                    $$ LANGUAGE plpgsql;
+                """))
+                conn.execute(text("""
+                    DROP TRIGGER IF EXISTS tsvectorupdate ON document_chunks;
+                    CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE
+                    ON document_chunks FOR EACH ROW EXECUTE FUNCTION chunks_search_vector_update();
+                """))
+                
+                # Initial backfill
+                conn.execute(text("UPDATE document_chunks SET search_vector = to_tsvector('english', coalesce(content, ''));"))
+                conn.commit()
+                print("Hybrid Search migration successfully completed.")
+            except Exception as e:
+                print(f"Migration error (hybrid_search): {e}")
+
 run_migrations()
 
 # Create database tables

@@ -40,15 +40,46 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
     except Exception as e:
         return {"answer": f"University Neural Interface Error (Embedding): {str(e)}", "sources": []}
 
-    query_builder = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+    # 1. Semantic Search (Vector)
+    k_vector = 10
+    query_builder_v = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
     if user_role == "student":
-        query_builder = query_builder.filter(models.Document.audience.in_(["all", "student"]))
+        query_builder_v = query_builder_v.filter(models.Document.audience.in_(["all", "student"]))
     elif user_role == "faculty":
-        query_builder = query_builder.filter(models.Document.audience.in_(["all", "faculty"]))
+        query_builder_v = query_builder_v.filter(models.Document.audience.in_(["all", "faculty"]))
 
-    results = query_builder.order_by(
+    vector_results = query_builder_v.order_by(
         models.DocumentChunk.embedding.l2_distance(query_embedding)
-    ).limit(k).all()
+    ).limit(k_vector).all()
+
+    # 2. Keyword Search (Full-Text Search)
+    from sqlalchemy import func
+    k_keyword = 5
+    keyword_query = db.query(models.DocumentChunk).join(models.DocumentChunk.document)\
+        .filter(models.DocumentChunk.search_vector.op('@@')(func.websearch_to_tsquery('english', query)))
+    
+    if user_role == "student":
+        keyword_query = keyword_query.filter(models.Document.audience.in_(["all", "student"]))
+    elif user_role == "faculty":
+        keyword_query = keyword_query.filter(models.Document.audience.in_(["all", "faculty"]))
+        
+    keyword_results = keyword_query.limit(k_keyword).all()
+
+    # 3. Hybrid Merge
+    seen_ids = set()
+    hybrid_results = []
+    
+    for r in keyword_results:
+        if r.id not in seen_ids:
+            hybrid_results.append(r)
+            seen_ids.add(r.id)
+            
+    for r in vector_results:
+        if r.id not in seen_ids:
+            hybrid_results.append(r)
+            seen_ids.add(r.id)
+    
+    results = hybrid_results[:12]
 
     if not results:
         return {"answer": "I dug through everything in the knowledge base and came up with nothing. Either this topic doesn't exist in the archives, or whoever uploaded the docs forgot to include it. Your best bet: ambush a department head or storm the main office — they tend to know things.", "sources": []}
@@ -135,15 +166,49 @@ async def generate_answer_stream(db: Session, query: str, user_role: str = "stud
     embeddings_model = OpenAIEmbeddings(openai_api_key=api_key)
     query_embedding = await embeddings_model.aembed_query(query)
 
-    query_builder = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+    # 1. Semantic Search (Vector)
+    k_vector = 10
+    query_builder_v = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
     if user_role == "student":
-        query_builder = query_builder.filter(models.Document.audience.in_(["all", "student"]))
+        query_builder_v = query_builder_v.filter(models.Document.audience.in_(["all", "student"]))
     elif user_role == "faculty":
-        query_builder = query_builder.filter(models.Document.audience.in_(["all", "faculty"]))
+        query_builder_v = query_builder_v.filter(models.Document.audience.in_(["all", "faculty"]))
 
-    results = query_builder.order_by(
+    vector_results = query_builder_v.order_by(
         models.DocumentChunk.embedding.l2_distance(query_embedding)
-    ).limit(k).all()
+    ).limit(k_vector).all()
+
+    # 2. Keyword Search (Full-Text Search)
+    from sqlalchemy import text as sql_text
+    k_keyword = 5
+    # Use plain_to_tsquery or websearch_to_tsquery for natural language keywords
+    keyword_query = db.query(models.DocumentChunk).join(models.DocumentChunk.document)\
+        .filter(models.DocumentChunk.search_vector.op('@@')(func.websearch_to_tsquery('english', query)))
+    
+    if user_role == "student":
+        keyword_query = keyword_query.filter(models.Document.audience.in_(["all", "student"]))
+    elif user_role == "faculty":
+        keyword_query = keyword_query.filter(models.Document.audience.in_(["all", "faculty"]))
+        
+    keyword_results = keyword_query.limit(k_keyword).all()
+
+    # 3. Hybrid Merge (Deduplicate and Rank)
+    # Give priority to keywords if they exist, then vector
+    seen_ids = set()
+    hybrid_results = []
+    
+    for r in keyword_results:
+        if r.id not in seen_ids:
+            hybrid_results.append(r)
+            seen_ids.add(r.id)
+            
+    for r in vector_results:
+        if r.id not in seen_ids:
+            hybrid_results.append(r)
+            seen_ids.add(r.id)
+    
+    # Take top 12 total
+    results = hybrid_results[:12]
 
     if not results:
         yield "data: {\"answer\": \"No campus records found.\", \"sources\": []}\n\n"
