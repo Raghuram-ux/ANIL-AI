@@ -191,8 +191,12 @@ export default function Chat() {
       audioRef.current = null;
     }
 
-    // Filter out emojis from the spoken text so they aren't "read" aloud
-    const cleanText = text.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+    // Filter out emojis and markdown special characters from the spoken text
+    const cleanText = text
+      .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
+      .replace(/[\*\_\#\`\~\>]/g, '') // Remove markdown symbols
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove markdown link syntax but keep text
+      .trim();
     
     // SPECIAL CASE: ELEVENLABS PREMIUM VOICES
     if (Object.keys(ELEVENLABS_VOICES).includes(globalVoiceName)) {
