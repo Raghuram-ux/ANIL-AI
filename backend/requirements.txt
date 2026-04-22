@@ -12,6 +12,7 @@ pymupdf
 langchain
 langchain-text-splitters
 langchain-openai
+langchain-core
 openai
 python-multipart
 requests
