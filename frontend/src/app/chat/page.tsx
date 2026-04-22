@@ -290,6 +290,16 @@ export default function Chat() {
     window.speechSynthesis.speak(utterance);
   };
 
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const [isSecure, setIsSecure] = useState(true);
+
+  // Check for secure context and support
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsSecure(window.isSecureContext);
+    }
+  }, []);
+
   // Initialize Speech Recognition (STT)
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -298,30 +308,37 @@ export default function Chat() {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = globalVoiceLang || 'en-IN'; // Better support for Indian English/Tanglish accent
+        recognitionRef.current.lang = globalVoiceLang || 'en-IN';
 
         recognitionRef.current.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
           setInput(transcript);
           setIsListening(false);
           setVoiceState('processing');
+          setSpeechError(null);
         };
 
         recognitionRef.current.onerror = (event: any) => {
           console.error("Speech recognition error:", event.error);
-          if (event.error === 'network') {
-             alert("Speech Recognition failed: Network error. Note that this feature requires a secure connection (HTTPS or localhost) and an active internet connection to your browser's speech service.");
-          } else if (event.error === 'not-allowed') {
-             alert("Microphone access denied. Please allow microphone permissions.");
-          }
           setIsListening(false);
           setVoiceState('idle');
+          
+          if (event.error === 'network') {
+            setSpeechError("Network error. Ensure HTTPS/Localhost and stable internet.");
+            // Try fallback to US English on network error
+            if (recognitionRef.current && recognitionRef.current.lang !== 'en-US') {
+              console.log("Attempting fallback to en-US...");
+              recognitionRef.current.lang = 'en-US';
+            }
+          } else if (event.error === 'not-allowed') {
+            setSpeechError("Microphone access denied.");
+          } else {
+            setSpeechError(`Speech error: ${event.error}`);
+          }
         };
 
         recognitionRef.current.onend = () => {
           setIsListening(false);
-          // Auto send logic inside useEffect hook relies on latest state changes, 
-          // but we handle auto-send inside the effect watching 'input' if Voice Mode is active
         };
       }
     }
@@ -628,6 +645,7 @@ export default function Chat() {
                       audioRef.current = null;
                     }
                     setVoiceState('idle');
+                    setSpeechError(null);
                   }}
                   className="px-2 md:px-4 py-2 text-[10px] md:text-xs font-bold text-[var(--foreground)] opacity-60 hover:opacity-100 uppercase tracking-widest"
                 >
@@ -637,8 +655,11 @@ export default function Chat() {
                 <button
                   type="button"
                   onClick={toggleListening}
+                  disabled={!isSecure}
                   className={`w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full transition-all shadow-xl z-20 ${
-                    voiceState === 'listening' 
+                    !isSecure 
+                      ? 'bg-slate-300 cursor-not-allowed opacity-50'
+                      : voiceState === 'listening' 
                       ? 'bg-red-500 text-white shadow-red-500/50 scale-110' 
                       : voiceState === 'speaking'
                       ? 'bg-[var(--foreground)] text-[var(--background)] shadow-[var(--foreground)]/30 scale-105'
@@ -647,13 +668,13 @@ export default function Chat() {
                       : 'bg-[var(--primary)] text-white hover:scale-105'
                   }`}
                 >
-                  {voiceState === 'listening' ? <MicOff className="w-6 h-6 md:w-8 md:h-8" /> : <Mic className="w-6 h-6 md:w-8 md:h-8" />}
+                  {!isSecure ? <ShieldCheck className="w-6 h-6 md:w-8 md:h-8" /> : voiceState === 'listening' ? <MicOff className="w-6 h-6 md:w-8 md:h-8" /> : <Mic className="w-6 h-6 md:w-8 md:h-8" />}
                 </button>
                 
                 <div className="w-10 md:w-20"></div> {/* Spacer to keep mic centered */}
              </div>
              <p className="text-[9px] md:text-[10px] mt-2 md:mt-4 uppercase font-bold tracking-widest opacity-50 z-10">
-                {voiceState === 'listening' ? 'Listening...' : voiceState === 'processing' ? 'Thinking...' : voiceState === 'speaking' ? 'Speaking...' : 'Tap Mic'}
+                {!isSecure ? <span className="text-red-500">HTTPS Required for Voice</span> : speechError ? <span className="text-red-500">{speechError}</span> : voiceState === 'listening' ? 'Listening...' : voiceState === 'processing' ? 'Thinking...' : voiceState === 'speaking' ? 'Speaking...' : 'Tap Mic'}
              </p>
           </div>
         ) : (
