@@ -40,9 +40,10 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
     except Exception as e:
         return {"answer": f"University Neural Interface Error (Embedding): {str(e)}", "sources": []}
 
+    from sqlalchemy.orm import joinedload
     # 1. Semantic Search (Vector)
     k_vector = 10
-    query_builder_v = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+    query_builder_v = db.query(models.DocumentChunk).options(joinedload(models.DocumentChunk.document))
     if user_role == "student":
         query_builder_v = query_builder_v.filter(models.Document.audience.in_(["all", "student"]))
     elif user_role == "faculty":
@@ -55,7 +56,7 @@ async def generate_answer(db: Session, query: str, user_role: str = "student") -
     # 2. Keyword Search (Full-Text Search)
     from sqlalchemy import func
     k_keyword = 5
-    keyword_query = db.query(models.DocumentChunk).join(models.DocumentChunk.document)\
+    keyword_query = db.query(models.DocumentChunk).options(joinedload(models.DocumentChunk.document))\
         .filter(models.DocumentChunk.search_vector.op('@@')(func.websearch_to_tsquery('english', query)))
     
     if user_role == "student":
@@ -166,9 +167,10 @@ async def generate_answer_stream(db: Session, query: str, user_role: str = "stud
     embeddings_model = OpenAIEmbeddings(openai_api_key=api_key)
     query_embedding = await embeddings_model.aembed_query(query)
 
+    from sqlalchemy.orm import joinedload
     # 1. Semantic Search (Vector)
     k_vector = 10
-    query_builder_v = db.query(models.DocumentChunk).join(models.DocumentChunk.document)
+    query_builder_v = db.query(models.DocumentChunk).options(joinedload(models.DocumentChunk.document))
     if user_role == "student":
         query_builder_v = query_builder_v.filter(models.Document.audience.in_(["all", "student"]))
     elif user_role == "faculty":
@@ -179,10 +181,9 @@ async def generate_answer_stream(db: Session, query: str, user_role: str = "stud
     ).limit(k_vector).all()
 
     # 2. Keyword Search (Full-Text Search)
-    from sqlalchemy import text as sql_text
+    from sqlalchemy import func
     k_keyword = 5
-    # Use plain_to_tsquery or websearch_to_tsquery for natural language keywords
-    keyword_query = db.query(models.DocumentChunk).join(models.DocumentChunk.document)\
+    keyword_query = db.query(models.DocumentChunk).options(joinedload(models.DocumentChunk.document))\
         .filter(models.DocumentChunk.search_vector.op('@@')(func.websearch_to_tsquery('english', query)))
     
     if user_role == "student":
